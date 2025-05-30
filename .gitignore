@@ -1,0 +1,72 @@
+# --------------------
+# Node (Frontend)
+# --------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.next/
+frontend/.turbo/
+frontend/.parcel-cache/
+
+# Lock files (optional: include if using yarn or pnpm instead of npm)
+frontend/package-lock.json
+frontend/pnpm-lock.yaml
+frontend/yarn.lock
+
+# --------------------
+# Python (Backend)
+# --------------------
+backend/__pycache__/
+backend/env/
+backend/.env
+backend/.venv/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/*.py[cod]
+backend/*.sqlite3
+backend/instance/
+backend/.DS_Store
+
+# --------------------
+# Global (Monorepo)
+# --------------------
+*.log
+*.pid
+*.swp
+*.swo
+*.bak
+*.tmp
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --------------------
+# Supabase (if used)
+# --------------------
+.supabase/
+.supabase/config.toml
+
+# --------------------
+# Database Dumps
+# --------------------
+*.sql
+*.dump
+
+# --------------------
+# Build & Coverage
+# --------------------
+dist/
+build/
+coverage/
+htmlcov/
+coverage.xml
+.coverage
+
+# --------------------
+# Uploads (optional)
+# --------------------
+uploads/
+media/
