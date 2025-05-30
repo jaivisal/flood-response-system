@@ -1,0 +1,287 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useQuery } from 'react-query';
+import {
+  AlertTriangle,
+  Activity,
+  Users,
+  Clock,
+  TrendingUp,
+  MapPin,
+  Zap,
+  Shield,
+} from 'lucide-react';
+
+import { useAuth } from '../hooks/useAuth';
+import { useIncidents } from '../hooks/useIncidents';
+import { useRescueUnits } from '../hooks/useRescueUnits';
+import MapContainer from '../components/Map/MapContainer';
+import StatsCard from '../components/Dashboard/StatsCard';
+import RecentIncidents from '../components/Dashboard/RecentIncidents';
+import ActiveUnits from '../components/Dashboard/ActiveUnits';
+import AlertsPanel from '../components/Dashboard/AlertsPanel';
+import LoadingSpinner from '../components/Common/LoadingSpinner';
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+
+  // Fetch data with auto-refresh
+  const {
+    data: incidents = [],
+    isLoading: incidentsLoading,
+    refetch: refetchIncidents,
+  } = useIncidents({
+    refetchInterval: refreshInterval,
+  });
+
+  const {
+    data: rescueUnits = [],
+    isLoading: unitsLoading,
+    refetch: refetchUnits,
+  } = useRescueUnits({
+    refetchInterval: refreshInterval,
+  });
+
+  const {
+    data: incidentStats,
+    isLoading: statsLoading,
+  } = useQuery(
+    'incident-stats',
+    () => fetch('/api/incidents/stats/overview').then(res => res.json()),
+    {
+      refetchInterval: refreshInterval,
+    }
+  );
+
+  // Calculate dashboard metrics
+  const criticalIncidents = incidents.filter(i => i.severity === 'critical').length;
+  const activeIncidents = incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length;
+  const availableUnits = rescueUnits.filter(u => u.status === 'available').length;
+  const responseUnits = rescueUnits.filter(u => ['en_route', 'on_scene'].includes(u.status)).length;
+
+  // Recent incidents (last 24 hours)
+  const recentIncidents = incidents
+    .filter(i => {
+      const incidentDate = new Date(i.created_at);
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return incidentDate > dayAgo;
+    })
+    .slice(0, 5);
+
+  // Auto-refresh controls
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchIncidents();
+      refetchUnits();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [refreshInterval, refetchIncidents, refetchUnits]);
+
+  if (incidentsLoading || unitsLoading || statsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Emergency Response Dashboard
+          </h1>
+          <p className="mt-1 text-gray-500">
+            Welcome back, {user?.full_name} • {user?.role.replace('_', ' ')}
+          </p>
+        </div>
+        
+        <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+          <div className="flex items-center text-sm text-gray-500">
+            <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            Live Updates
+          </div>
+          <select
+            value={refreshInterval}
+            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+            className="text-sm border border-gray-300 rounded-md px-3 py-1"
+          >
+            <option value={10000}>10s</option>
+            <option value={30000}>30s</option>
+            <option value={60000}>1m</option>
+            <option value={0}>Manual</option>
+          </select>
+        </div>
+      </motion.div>
+
+      {/* Stats Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        <StatsCard
+          title="Critical Incidents"
+          value={criticalIncidents}
+          icon={AlertTriangle}
+          color="red"
+          trend={criticalIncidents > 0 ? 'up' : 'stable'}
+          subtitle={`${activeIncidents} total active`}
+        />
+        
+        <StatsCard
+          title="Available Units"
+          value={availableUnits}
+          icon={Shield}
+          color="green"
+          trend="stable"
+          subtitle={`${responseUnits} responding`}
+        />
+        
+        <StatsCard
+          title="Response Time"
+          value="12.5"
+          unit="min"
+          icon={Clock}
+          color="blue"
+          trend="down"
+          subtitle="Average this week"
+        />
+        
+        <StatsCard
+          title="People Affected"
+          value={incidents.reduce((sum, i) => sum + i.affected_people_count, 0)}
+          icon={Users}
+          color="orange"
+          trend="up"
+          subtitle="Last 24 hours"
+        />
+      </motion.div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Map Section */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-2"
+        >
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                Live Situation Map
+              </h2>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <span>{incidents.length} incidents</span>
+                <span>•</span>
+                <span>{rescueUnits.length} units</span>
+              </div>
+            </div>
+            
+            <MapContainer
+              incidents={incidents}
+              rescueUnits={rescueUnits}
+              height="400px"
+              showControls={true}
+            />
+          </div>
+        </motion.div>
+
+        {/* Side Panel */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-6"
+        >
+          {/* Alerts Panel */}
+          <AlertsPanel incidents={incidents} />
+          
+          {/* Recent Incidents */}
+          <RecentIncidents incidents={recentIncidents} />
+        </motion.div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active Units */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <ActiveUnits units={rescueUnits.slice(0, 8)} />
+        </motion.div>
+
+        {/* Performance Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+            Performance Metrics
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Resolution Rate</span>
+              <div className="flex items-center">
+                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '78%' }}></div>
+                </div>
+                <span className="text-sm font-medium">78%</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Unit Utilization</span>
+              <div className="flex items-center">
+                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                </div>
+                <span className="text-sm font-medium">65%</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Response Coverage</span>
+              <div className="flex items-center">
+                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                  <div className="bg-orange-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                </div>
+                <span className="text-sm font-medium">92%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">156</div>
+                <div className="text-sm text-gray-500">Resolved Today</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">23</div>
+                <div className="text-sm text-gray-500">Active Teams</div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
