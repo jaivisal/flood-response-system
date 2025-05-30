@@ -31,8 +31,10 @@ interface MapContainerProps {
   onMapClick?: (lat: number, lng: number) => void;
   onIncidentClick?: (incident: Incident) => void;
   onRescueUnitClick?: (unit: RescueUnit) => void;
+  onFloodZoneClick?: (zone: FloodZone) => void;
   selectedIncident?: Incident | null;
   selectedRescueUnit?: RescueUnit | null;
+  selectedFloodZone?: FloodZone | null;
   height?: string;
   className?: string;
   showControls?: boolean;
@@ -155,8 +157,10 @@ export default function EmergencyMapContainer({
   onMapClick,
   onIncidentClick,
   onRescueUnitClick,
+  onFloodZoneClick,
   selectedIncident,
   selectedRescueUnit,
+  selectedFloodZone,
   height = '500px',
   className = '',
   showControls = true,
@@ -191,7 +195,6 @@ export default function EmergencyMapContainer({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
         {/* Map event handlers */}
         <MapEventHandler onMapClick={onMapClick} />
 
@@ -202,7 +205,7 @@ export default function EmergencyMapContainer({
 
         {/* Flood zones layer */}
         {showFloodZones && floodZones.length > 0 && (
-          <FloodZoneLayer zones={floodZones} />
+          <FloodZoneLayer zones={floodZones} onZoneClick={onFloodZoneClick} />
         )}
 
         {/* Incident markers */}

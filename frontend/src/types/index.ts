@@ -1,4 +1,3 @@
-// User Types
 export type UserRole = 'field_responder' | 'command_center' | 'district_officer' | 'admin';
 
 export interface User {
@@ -179,6 +178,8 @@ export interface FloodZone {
   zone_type: ZoneType;
   population_estimate: number;
   area_sqkm?: number;
+  residential_units: number;
+  commercial_units: number;
   is_currently_flooded: boolean;
   evacuation_recommended: boolean;
   evacuation_mandatory: boolean;
@@ -195,6 +196,36 @@ export interface FloodZone {
   last_assessment?: string;
   created_at: string;
   updated_at?: string;
+}
+
+export interface CreateFloodZoneData {
+  name: string;
+  description?: string;
+  zone_code: string;
+  risk_level: RiskLevel;
+  zone_type: ZoneType;
+  center_latitude: number;
+  center_longitude: number;
+  area_sqkm?: number;
+  population_estimate: number;
+  residential_units: number;
+  commercial_units: number;
+  critical_infrastructure?: string[];
+  district?: string;
+  municipality?: string;
+  responsible_officer?: string;
+  emergency_contact?: string;
+}
+
+export interface FloodZoneStats {
+  total_zones: number;
+  by_risk_level: Record<string, number>;
+  by_zone_type: Record<string, number>;
+  currently_flooded: number;
+  evacuation_recommended: number;
+  evacuation_mandatory: number;
+  high_risk_zones: number;
+  population_at_risk: number;
 }
 
 // GeoJSON Types

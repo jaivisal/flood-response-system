@@ -15,7 +15,7 @@ export const api: AxiosInstance = axios.create({
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config: AxiosRequestConfig): any => {
+  (config: any) => {
     const token = localStorage.getItem('flood_response_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;

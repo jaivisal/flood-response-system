@@ -3,11 +3,15 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 
-# Database
+# Database with compatible NumPy
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 geoalchemy2==0.14.2
 alembic==1.13.1
+
+# Compatible NumPy version
+numpy<2.0
+shapely>=2.0.0,<3.0
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -21,7 +25,6 @@ email-validator==2.1.0
 
 # Image handling
 Pillow==10.1.0
-cloudinary==1.36.0
 
 # HTTP client
 httpx==0.25.2
@@ -29,22 +32,9 @@ httpx==0.25.2
 # Development tools
 pytest==7.4.3
 pytest-asyncio==0.21.1
-black==23.11.0
-isort==5.12.0
-flake8==6.1.0
 
-# Optional: for better performance
-redis==5.0.1
-
-# Geospatial utilities
-shapely==2.0.2
+# Geospatial utilities (compatible versions)
 pyproj==3.6.1
 
 # Date/time utilities
 python-dateutil==2.8.2
-
-# Logging and monitoring
-structlog==23.2.0
-
-# CORS
-fastapi-cors==0.0.6
