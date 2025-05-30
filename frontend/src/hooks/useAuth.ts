@@ -32,13 +32,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isAuthenticated = !!user;
 
-  // Initialize auth state on app load
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const token = authService.getToken();
         if (token) {
-          // Verify token and get user profile
           const userProfile = await authService.getCurrentUser();
           setUser(userProfile);
         }
@@ -58,7 +56,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       const response: AuthResponse = await authService.login(credentials);
       
-      // Store token and user data
       authService.setToken(response.access_token);
       setUser(response.user);
       
@@ -85,7 +82,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(userProfile);
     } catch (error) {
       console.error('Failed to refresh user data:', error);
-      // If refresh fails, the user might need to log in again
       logout();
     }
   };
@@ -99,9 +95,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  return React.createElement(
+    AuthContext.Provider,
+    { value },
+    children
   );
 }

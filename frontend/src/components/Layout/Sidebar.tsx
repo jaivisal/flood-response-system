@@ -24,6 +24,22 @@ interface SidebarProps {
 
 const navigation: NavItem[] = [
   {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    name: 'Incidents',
+    href: '/incidents',
+    icon: AlertTriangle,
+  },
+  {
+    name: 'Rescue Units',
+    href: '/rescue-units',
+    icon: Activity,
+    roles: ['command_center', 'admin'],
+  },
+  {
     name: 'Flood Zones',
     href: '/flood-zones',
     icon: MapPin,
@@ -286,20 +302,4 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </AnimatePresence>
     </>
   );
-}Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    name: 'Incidents',
-    href: '/incidents',
-    icon: AlertTriangle,
-  },
-  {
-    name: 'Rescue Units',
-    href: '/rescue-units',
-    icon: Activity,
-    roles: ['command_center', 'admin'],
-  },
-  {
-    name: '
+}
