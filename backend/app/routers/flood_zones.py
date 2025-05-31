@@ -1,9 +1,10 @@
 """
-Flood Zones router for risk assessment and zone management
+Fixed Flood Zones router for risk assessment and zone management
+backend/app/routers/flood_zones.py - FIXED VERSION
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, desc
 from geoalchemy2 import functions as geo_func
 from typing import List, Optional
 import json
@@ -90,7 +91,7 @@ async def list_flood_zones(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """List flood zones with optional filters"""
+    """List flood zones with optional filters - FIXED VERSION"""
     
     query = db.query(FloodZone)
     
@@ -119,7 +120,8 @@ async def list_flood_zones(
                 )
             )
     
-    zones = query.order_by(FloodZone.priority_score().desc()).offset(skip).limit(limit).all()
+    # Order by priority score using the hybrid property - FIXED
+    zones = query.order_by(desc(FloodZone.priority_score)).offset(skip).limit(limit).all()
     
     return [_format_zone_summary(zone) for zone in zones]
 
@@ -359,7 +361,7 @@ async def get_high_risk_zones(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get all high-risk flood zones requiring attention"""
+    """Get all high-risk flood zones requiring attention - FIXED VERSION"""
     
     zones = db.query(FloodZone).filter(
         or_(
@@ -367,7 +369,7 @@ async def get_high_risk_zones(
             FloodZone.is_currently_flooded == True,
             FloodZone.evacuation_mandatory == True
         )
-    ).order_by(FloodZone.get_priority_score().desc()).all()
+    ).order_by(desc(FloodZone.priority_score)).all()
     
     return [_format_zone_summary(zone) for zone in zones]
 
@@ -463,7 +465,7 @@ def _format_zone_response(zone: FloodZone) -> FloodZoneResponse:
         last_assessment=zone.last_assessment,
         color=zone.get_risk_color(),
         opacity=zone.get_risk_opacity(),
-        priority_score=zone.get_priority_score(),
+        priority_score=zone.get_priority_score(),  # Use the Python method
         is_critical=zone.is_critical()
     )
 
@@ -484,7 +486,7 @@ def _format_zone_summary(zone: FloodZone) -> FloodZoneSummary:
         district=zone.district,
         municipality=zone.municipality,
         color=zone.get_risk_color(),
-        priority_score=zone.get_priority_score(),
+        priority_score=zone.get_priority_score(),  # Use the Python method
         is_critical=zone.is_critical(),
         last_assessment=zone.last_assessment
     )

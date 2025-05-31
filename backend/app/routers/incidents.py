@@ -1,12 +1,15 @@
 """
 Incidents router for emergency incident management
+FIXED VERSION - Added missing SQLAlchemyError import
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
+from sqlalchemy.exc import SQLAlchemyError  # ADDED THIS MISSING IMPORT
 from geoalchemy2 import functions as geo_func
 from typing import List, Optional
 import json
+import logging
 
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -20,6 +23,9 @@ from app.schemas.incident import (
 from app.routers.auth import get_current_active_user, require_role
 from app.services.gis_service import create_point_from_coords, calculate_distance
 from app.utils.spatial import find_nearest_rescue_unit
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -276,7 +282,7 @@ async def get_nearby_incidents(
 
 @router.get("/stats/overview", response_model=IncidentStats)
 async def get_incident_statistics(
-    current_user: User = Depends(get_current_active_user),  # Add this line
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get incident statistics overview - FIXED VERSION"""
@@ -349,7 +355,7 @@ async def get_incident_statistics(
             average_resolution_time=average_resolution_time
         )
         
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as e:  # NOW THIS IMPORT EXISTS
         logger.error(f"Database error in get_incident_statistics: {e}")
         db.rollback()
         raise HTTPException(

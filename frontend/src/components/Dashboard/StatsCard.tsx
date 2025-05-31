@@ -7,7 +7,7 @@ interface StatsCardProps {
   value: number | string;
   unit?: string;
   icon: LucideIcon;
-  color: 'red' | 'green' | 'blue' | 'orange' | 'purple' | 'gray';
+  color: 'red' | 'green' | 'blue' | 'orange' | 'purple' | 'gray' | 'yellow';
   trend?: 'up' | 'down' | 'stable';
   trendValue?: number;
   subtitle?: string;
@@ -51,6 +51,12 @@ const colorClasses = {
     bgLight: 'bg-gray-50',
     border: 'border-gray-200',
   },
+  yellow: {
+    bg: 'bg-yellow-500',
+    text: 'text-yellow-600',
+    bgLight: 'bg-yellow-50',
+    border: 'border-yellow-200',
+  },
 };
 
 const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
@@ -92,12 +98,15 @@ export default function StatsCard({
 }: StatsCardProps) {
   const colors = colorClasses[color];
 
+  // Safely handle the value - ensure it's never undefined or null
+  const displayValue = value ?? 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: onClick ? 1.02 : 1 }}
+      whileTap={{ scale: onClick ? 0.98 : 1 }}
       className={`relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border ${colors.border} ${
         onClick ? 'cursor-pointer hover:shadow-md' : ''
       } transition-all duration-200`}
@@ -128,7 +137,7 @@ export default function StatsCard({
         <div className="mt-4">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-3xl font-bold text-gray-900">
-              {value}
+              {displayValue}
             </h3>
             {unit && (
               <span className="text-lg font-medium text-gray-500">{unit}</span>
@@ -141,12 +150,12 @@ export default function StatsCard({
         </div>
 
         {/* Progress bar for certain metrics */}
-        {color === 'blue' && typeof value === 'number' && value <= 100 && (
+        {color === 'blue' && typeof displayValue === 'number' && displayValue <= 100 && (
           <div className="mt-4">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${value}%` }}
+                animate={{ width: `${displayValue}%` }}
                 transition={{ duration: 1, delay: 0.5 }}
                 className={`h-2 rounded-full ${colors.bg}`}
               />

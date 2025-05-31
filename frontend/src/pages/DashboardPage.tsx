@@ -1,13 +1,5 @@
-/*
-Fixed Dashboard Page with proper stats query
-frontend/src/pages/DashboardPage.tsx - STATS FIX
-*/
-
-// Replace the incident stats query in your DashboardPage.tsx with this fixed version:
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from 'react-query';
 import {
   AlertTriangle,
   Activity,
@@ -22,11 +14,13 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useIncidents, useIncidentStats } from '../hooks/useIncidents';
 import { useRescueUnits } from '../hooks/useRescueUnits';
+import { useFloodZones } from '../hooks/useFloodZones';
 import MapContainer from '../components/Map/MapContainer';
 import StatsCard from '../components/Dashboard/StatsCard';
 import RecentIncidents from '../components/Dashboard/RecentIncidents';
 import ActiveUnits from '../components/Dashboard/ActiveUnits';
 import AlertsPanel from '../components/Dashboard/AlertsPanel';
+import RiskDashboard from '../components/Dashboard/RiskDashboard';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
 export default function DashboardPage() {
@@ -50,7 +44,15 @@ export default function DashboardPage() {
     refetchInterval: refreshInterval,
   });
 
-  // FIXED: Use the useIncidentStats hook instead of manual query
+  const {
+    data: floodZones = [],
+    isLoading: zonesLoading,
+    refetch: refetchZones,
+  } = useFloodZones({
+    refetchInterval: refreshInterval,
+  });
+
+  // Fetch incident statistics
   const {
     data: incidentStats,
     isLoading: statsLoading,
@@ -87,12 +89,13 @@ export default function DashboardPage() {
     const interval = setInterval(() => {
       refetchIncidents();
       refetchUnits();
+      refetchZones();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [refreshInterval, refetchIncidents, refetchUnits]);
+  }, [refreshInterval, refetchIncidents, refetchUnits, refetchZones]);
 
-  if (incidentsLoading || unitsLoading) {
+  if (incidentsLoading || unitsLoading || zonesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
@@ -197,8 +200,8 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Map Section - Takes 2 columns */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -215,30 +218,39 @@ export default function DashboardPage() {
                 <span>{incidents.length} incidents</span>
                 <span>•</span>
                 <span>{rescueUnits.length} units</span>
+                <span>•</span>
+                <span>{floodZones.length} zones</span>
               </div>
             </div>
             
             <MapContainer
               incidents={incidents}
               rescueUnits={rescueUnits}
+              floodZones={floodZones}
               height="400px"
               showControls={true}
             />
           </div>
         </motion.div>
 
-        {/* Side Panel */}
+        {/* Risk Dashboard - Takes 1 column */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.25 }}
+          className="lg:col-span-1"
+        >
+          <RiskDashboard />
+        </motion.div>
+
+        {/* Alerts Panel - Takes 1 column */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
-          className="space-y-6"
+          className="lg:col-span-1"
         >
-          {/* Alerts Panel */}
           <AlertsPanel incidents={incidents} />
-          
-          {/* Recent Incidents */}
-          <RecentIncidents incidents={recentIncidents} />
         </motion.div>
       </div>
 
@@ -253,66 +265,131 @@ export default function DashboardPage() {
           <ActiveUnits units={rescueUnits.slice(0, 8)} />
         </motion.div>
 
-        {/* Performance Metrics */}
+        {/* Recent Incidents and Performance Metrics */}
+        <div className="space-y-6">
+          {/* Recent Incidents */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+          >
+            <RecentIncidents incidents={recentIncidents} />
+          </motion.div>
+
+          {/* Performance Metrics */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+              Performance Metrics
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Resolution Rate</span>
+                <div className="flex items-center">
+                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                    <div className="bg-green-500 h-2 rounded-full" style={{ width: '78%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">78%</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Unit Utilization</span>
+                <div className="flex items-center">
+                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">65%</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Response Coverage</span>
+                <div className="flex items-center">
+                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                    <div className="bg-orange-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">92%</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {incidentStats?.resolved_incidents || 156}
+                  </div>
+                  <div className="text-sm text-gray-500">Resolved Today</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">{availableUnits}</div>
+                  <div className="text-sm text-gray-500">Active Teams</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Critical Incidents Alert */}
+      {criticalIncidents > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          transition={{ delay: 0.6 }}
+          className="bg-red-50 border border-red-200 rounded-lg p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-            Performance Metrics
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Resolution Rate</span>
-              <div className="flex items-center">
-                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '78%' }}></div>
-                </div>
-                <span className="text-sm font-medium">78%</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="w-8 h-8 text-red-600 mr-3 animate-pulse" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900">
+                  {criticalIncidents} Critical Incident{criticalIncidents > 1 ? 's' : ''} Require Immediate Attention
+                </h3>
+                <p className="text-sm text-red-700">
+                  These incidents need urgent response and resource allocation.
+                </p>
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Unit Utilization</span>
-              <div className="flex items-center">
-                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-                </div>
-                <span className="text-sm font-medium">65%</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Response Coverage</span>
-              <div className="flex items-center">
-                <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                  <div className="bg-orange-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-                </div>
-                <span className="text-sm font-medium">92%</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {incidentStats?.resolved_incidents || 156}
-                </div>
-                <div className="text-sm text-gray-500">Resolved Today</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">23</div>
-                <div className="text-sm text-gray-500">Active Teams</div>
-              </div>
+            <div className="flex space-x-2">
+              <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
+                Auto-Assign Units
+              </button>
+              <button className="px-4 py-2 bg-white text-red-600 border border-red-600 text-sm font-medium rounded-md hover:bg-red-50 transition-colors">
+                View All Critical
+              </button>
             </div>
           </div>
         </motion.div>
-      </div>
+      )}
+
+      {/* System Health Indicator */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="bg-green-50 border border-green-200 rounded-lg p-4"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+            <span className="text-sm font-medium text-green-900">
+              All systems operational
+            </span>
+          </div>
+          <div className="text-xs text-green-700">
+            Last updated: {new Date().toLocaleTimeString()}
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

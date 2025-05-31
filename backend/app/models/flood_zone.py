@@ -1,8 +1,10 @@
 """
-Flood Zone model for risk assessment areas
+Fixed Flood Zone model for risk assessment areas
+backend/app/models/flood_zone.py - FIXED VERSION
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, Float, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, Float, Boolean, case
 from sqlalchemy.sql import func
+from sqlalchemy.ext.hybrid import hybrid_property
 from geoalchemy2 import Geography
 import enum
 
@@ -115,38 +117,80 @@ class FloodZone(Base):
             self.risk_level == RiskLevel.EXTREME
         )
 
+    @hybrid_property
+    def priority_score(self) -> int:
+        """Get priority score for resource allocation - FIXED VERSION"""
+        return self.get_priority_score()
+
+    @priority_score.expression
+    def priority_score(cls):
+        """SQLAlchemy expression for priority score calculation"""
+        # Create a case expression for risk level scoring
+        risk_score = case(
+            (cls.risk_level == RiskLevel.EXTREME, 60),
+            (cls.risk_level == RiskLevel.VERY_HIGH, 50),
+            (cls.risk_level == RiskLevel.HIGH, 40),
+            (cls.risk_level == RiskLevel.MEDIUM, 30),
+            (cls.risk_level == RiskLevel.LOW, 20),
+            (cls.risk_level == RiskLevel.VERY_LOW, 10),
+            else_=0
+        )
+        
+        # Add population factor
+        population_score = case(
+            (cls.population_estimate > 10000, 20),
+            (cls.population_estimate > 5000, 15),
+            (cls.population_estimate > 1000, 10),
+            else_=0
+        )
+        
+        # Add current conditions scoring
+        flooding_score = case(
+            (cls.is_currently_flooded == True, 30),
+            else_=0
+        )
+        
+        evacuation_score = case(
+            (cls.evacuation_mandatory == True, 25),
+            (cls.evacuation_recommended == True, 15),
+            else_=0
+        )
+        
+        # Return total score (max 100)
+        total_score = risk_score + population_score + flooding_score + evacuation_score
+        return func.least(total_score, 100)
+
     def get_priority_score(self) -> int:
-        """Get priority score for resource allocation"""
-    # This should be a regular method, not a column expression
+        """Calculate priority score - Python method version"""
         score = 0
-    
-    # Risk level scoring
+        
+        # Risk level scoring
         risk_scores = {
-        RiskLevel.VERY_LOW: 1,
-        RiskLevel.LOW: 2,
-        RiskLevel.MEDIUM: 3,
-        RiskLevel.HIGH: 4,
-        RiskLevel.VERY_HIGH: 5,
-        RiskLevel.EXTREME: 6
-    }
+            RiskLevel.VERY_LOW: 1,
+            RiskLevel.LOW: 2,
+            RiskLevel.MEDIUM: 3,
+            RiskLevel.HIGH: 4,
+            RiskLevel.VERY_HIGH: 5,
+            RiskLevel.EXTREME: 6
+        }
         score += risk_scores.get(self.risk_level, 0) * 10
-    
-    # Population factor
+        
+        # Population factor
         if self.population_estimate > 10000:
             score += 20
         elif self.population_estimate > 5000:
             score += 15
         elif self.population_estimate > 1000:
             score += 10
-    
-     # Current conditions
+        
+        # Current conditions
         if self.is_currently_flooded:
             score += 30
         if self.evacuation_mandatory:
             score += 25
         elif self.evacuation_recommended:
             score += 15
-    
+        
         return min(score, 100)
 
     def to_geojson_feature(self) -> dict:

@@ -45,7 +45,7 @@ export default function IncidentsPage() {
   });
 
   // Fetch incident statistics
-  const { data: incidentStats } = useIncidentStats();
+  const { data: incidentStats, isLoading: statsLoading } = useIncidentStats();
 
   // Filter incidents based on search and filters
   const filteredIncidents = useMemo(() => {
@@ -65,13 +65,13 @@ export default function IncidentsPage() {
     });
   }, [incidents, searchTerm, severityFilter, statusFilter, typeFilter, showCriticalOnly]);
 
-  // Calculate statistics
+  // Calculate statistics with safe fallbacks
   const stats = useMemo(() => {
-    const totalIncidents = incidents.length;
-    const criticalIncidents = incidents.filter(i => i.severity === 'critical').length;
-    const activeIncidents = incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length;
-    const resolvedIncidents = incidents.filter(i => ['resolved', 'closed'].includes(i.status)).length;
-    const unassignedIncidents = incidents.filter(i => !i.assigned_unit_id && i.status === 'reported').length;
+    const totalIncidents = incidents?.length || 0;
+    const criticalIncidents = incidents?.filter(i => i.severity === 'critical').length || 0;
+    const activeIncidents = incidents?.filter(i => !['resolved', 'closed'].includes(i.status)).length || 0;
+    const resolvedIncidents = incidents?.filter(i => ['resolved', 'closed'].includes(i.status)).length || 0;
+    const unassignedIncidents = incidents?.filter(i => !i.assigned_unit_id && i.status === 'reported').length || 0;
 
     return {
       totalIncidents,
@@ -91,6 +91,10 @@ export default function IncidentsPage() {
   };
 
   const handleExport = () => {
+    if (!filteredIncidents || filteredIncidents.length === 0) {
+      return;
+    }
+
     // Export incidents data as CSV
     const csvData = filteredIncidents.map(incident => ({
       'ID': incident.id,
@@ -237,7 +241,7 @@ export default function IncidentsPage() {
         </div>
       </motion.div>
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards - FIXED VERSION */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
