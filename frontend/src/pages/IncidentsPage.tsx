@@ -17,7 +17,7 @@ import {
   Activity,
   CheckCircle,
 } from 'lucide-react';
-
+import IncidentForm from '../components/Forms/IncidentForm';
 import { useAuth } from '../hooks/useAuth';
 import { useIncidents, useIncidentStats } from '../hooks/useIncidents';
 import { Incident, IncidentType, SeverityLevel, IncidentStatus } from '../types';
@@ -46,6 +46,8 @@ export default function IncidentsPage() {
 
   // Fetch incident statistics
   const { data: incidentStats, isLoading: statsLoading } = useIncidentStats();
+  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+
 
   // Filter incidents based on search and filters
   const filteredIncidents = useMemo(() => {
@@ -190,11 +192,12 @@ export default function IncidentsPage() {
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Incidents</h3>
         <p className="text-gray-600 mb-4">Failed to load incident data. Please try again.</p>
-        <button
-          onClick={handleRefresh}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        <button 
+            onClick={() => setIsReportFormOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
         >
-          Retry
+        <Plus className="w-4 h-4 mr-2" />
+        Report Incident
         </button>
       </div>
     );
@@ -653,6 +656,14 @@ export default function IncidentsPage() {
           </div>
         </motion.div>
       )}
+      <IncidentForm
+        isOpen={isReportFormOpen}
+        onClose={() => setIsReportFormOpen(false)}
+        onSuccess={(incident) => {
+        console.log('Incident created:', incident);
+        handleRefresh(); // Refresh the incidents list
+     }}
+/>
     </div>
   );
 }
