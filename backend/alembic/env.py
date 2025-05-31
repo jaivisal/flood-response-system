@@ -6,7 +6,7 @@ import os
 import sys
 
 # Add the parent directory to the path so we can import our models
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base
 from app.config import settings

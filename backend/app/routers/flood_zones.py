@@ -18,7 +18,7 @@ from app.schemas.flood_zone import (
 )
 from app.routers.auth import get_current_active_user, require_role
 from app.services.gis_service import create_point_from_coords
-from app.utils.spatial import calculate_zone_coverage
+from app.utils.flood_zones import calculate_zone_coverage
 
 router = APIRouter()
 

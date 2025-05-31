@@ -117,36 +117,37 @@ class FloodZone(Base):
 
     def get_priority_score(self) -> int:
         """Get priority score for resource allocation"""
+    # This should be a regular method, not a column expression
         score = 0
-        
-        # Risk level scoring
+    
+    # Risk level scoring
         risk_scores = {
-            RiskLevel.VERY_LOW: 1,
-            RiskLevel.LOW: 2,
-            RiskLevel.MEDIUM: 3,
-            RiskLevel.HIGH: 4,
-            RiskLevel.VERY_HIGH: 5,
-            RiskLevel.EXTREME: 6
-        }
+        RiskLevel.VERY_LOW: 1,
+        RiskLevel.LOW: 2,
+        RiskLevel.MEDIUM: 3,
+        RiskLevel.HIGH: 4,
+        RiskLevel.VERY_HIGH: 5,
+        RiskLevel.EXTREME: 6
+    }
         score += risk_scores.get(self.risk_level, 0) * 10
-        
-        # Population factor
+    
+    # Population factor
         if self.population_estimate > 10000:
             score += 20
         elif self.population_estimate > 5000:
             score += 15
         elif self.population_estimate > 1000:
             score += 10
-        
-        # Current conditions
+    
+     # Current conditions
         if self.is_currently_flooded:
             score += 30
         if self.evacuation_mandatory:
             score += 25
         elif self.evacuation_recommended:
             score += 15
-        
-        return min(score, 100)  # Cap at 100
+    
+        return min(score, 100)
 
     def to_geojson_feature(self) -> dict:
         """Convert to GeoJSON feature"""

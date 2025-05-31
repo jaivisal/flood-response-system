@@ -1,13 +1,16 @@
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
 import json
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from geoalchemy2 import func
+from sqlalchemy import func
+from geoalchemy2 import Geometry
 import random
 
-from app.database import SessionLocal, engine
+from app.database import SessionLocal, engine, Base
 from app.models.user import User, UserRole
 from app.models.incident import Incident, IncidentType, SeverityLevel, IncidentStatus
 from app.models.rescue_unit import RescueUnit, UnitType, UnitStatus

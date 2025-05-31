@@ -1,7 +1,7 @@
 """
-Database configuration and session management
+Database configuration and session management - FIXED VERSION
 """
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
@@ -82,7 +82,8 @@ def test_connection():
     """Test database connection"""
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            # Use text() to create an executable SQL expression
+            result = conn.execute(text("SELECT 1"))
             if result.fetchone():
                 logger.info("✅ Database connection successful")
                 return True
@@ -97,8 +98,9 @@ def check_postgis():
     """Check if PostGIS extension is available"""
     try:
         with engine.connect() as conn:
+            # Use text() for the SQL query
             result = conn.execute(
-                "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'postgis')"
+                text("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'postgis')")
             )
             if result.fetchone()[0]:
                 logger.info("✅ PostGIS extension is available")
