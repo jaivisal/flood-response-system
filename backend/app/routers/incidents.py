@@ -276,52 +276,92 @@ async def get_nearby_incidents(
 
 @router.get("/stats/overview", response_model=IncidentStats)
 async def get_incident_statistics(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),  # Add this line
     db: Session = Depends(get_db)
 ):
-    """Get incident statistics overview"""
+    """Get incident statistics overview - FIXED VERSION"""
     
-    base_query = db.query(Incident)
-    
-    # Role-based filtering
-    if not current_user.can_view_all_incidents():
-        base_query = base_query.filter(Incident.reporter_id == current_user.id)
-    
-    # Total incidents
-    total_incidents = base_query.count()
-    
-    # By severity
-    severity_stats = {}
-    for severity in SeverityLevel:
-        count = base_query.filter(Incident.severity == severity).count()
-        severity_stats[severity.value] = count
-    
-    # By status
-    status_stats = {}
-    for status in IncidentStatus:
-        count = base_query.filter(Incident.status == status).count()
-        status_stats[status.value] = count
-    
-    # By type
-    type_stats = {}
-    for incident_type in IncidentType:
-        count = base_query.filter(Incident.incident_type == incident_type).count()
-        type_stats[incident_type.value] = count
-    
-    # Critical and resolved counts
-    critical_incidents = base_query.filter(Incident.severity == SeverityLevel.CRITICAL).count()
-    resolved_incidents = base_query.filter(
-        Incident.status.in_([IncidentStatus.RESOLVED, IncidentStatus.CLOSED])
-    ).count()
-    
-    return IncidentStats(
-        total_incidents=total_incidents,
-        by_severity=severity_stats,
-        by_status=status_stats,
-        by_type=type_stats,
-        critical_incidents=critical_incidents,
-        resolved_incidents=resolved_incidents
-    )
+    try:
+        base_query = db.query(Incident)
+        
+        # Role-based filtering
+        if not current_user.can_view_all_incidents():
+            base_query = base_query.filter(Incident.reporter_id == current_user.id)
+        
+        # Total incidents
+        total_incidents = base_query.count()
+        
+        # By severity
+        severity_stats = {}
+        for severity in SeverityLevel:
+            count = base_query.filter(Incident.severity == severity).count()
+            severity_stats[severity.value] = count
+        
+        # By status
+        status_stats = {}
+        for status in IncidentStatus:
+            count = base_query.filter(Incident.status == status).count()
+            status_stats[status.value] = count
+        
+        # By type
+        type_stats = {}
+        for incident_type in IncidentType:
+            count = base_query.filter(Incident.incident_type == incident_type).count()
+            type_stats[incident_type.value] = count
+        
+        # Critical and resolved counts
+        critical_incidents = base_query.filter(Incident.severity == SeverityLevel.CRITICAL).count()
+        resolved_incidents = base_query.filter(
+            Incident.status.in_([IncidentStatus.RESOLVED, IncidentStatus.CLOSED])
+        ).count()
+        
+        # Calculate average resolution time (in hours)
+        average_resolution_time = None
+        try:
+            resolved_with_times = base_query.filter(
+                Incident.resolved_at.isnot(None),
+                Incident.created_at.isnot(None)
+            ).all()
+            
+            if resolved_with_times:
+                total_hours = 0
+                count = 0
+                for incident in resolved_with_times:
+                    if incident.resolved_at and incident.created_at:
+                        delta = incident.resolved_at - incident.created_at
+                        total_hours += delta.total_seconds() / 3600
+                        count += 1
+                
+                if count > 0:
+                    average_resolution_time = round(total_hours / count, 2)
+        except Exception as e:
+            logger.warning(f"Could not calculate average resolution time: {e}")
+        
+        logger.info(f"Stats requested by user: {current_user.email} ({current_user.role})")
+        
+        return IncidentStats(
+            total_incidents=total_incidents,
+            by_severity=severity_stats,
+            by_status=status_stats,
+            by_type=type_stats,
+            critical_incidents=critical_incidents,
+            resolved_incidents=resolved_incidents,
+            average_resolution_time=average_resolution_time
+        )
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in get_incident_statistics: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in get_incident_statistics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
 
 @router.post("/assign", response_model=dict)

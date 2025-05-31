@@ -1,5 +1,6 @@
 """
-Database configuration and session management - FIXED VERSION
+Fixed Database configuration and session management
+backend/app/database.py - UPDATED VERSION
 """
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.ext.declarative import declarative_base
@@ -15,10 +16,13 @@ from app.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database engine configuration
+# Database engine configuration - FIXED VERSION
 engine_kwargs = {
-    "echo": settings.DEBUG,
+    "echo": False,  # Set to False to reduce log noise
     "pool_pre_ping": True,
+    "pool_recycle": 300,  # Recycle connections every 5 minutes
+    "pool_size": 10,
+    "max_overflow": 20,
 }
 
 # Handle SQLite for development (though PostgreSQL is recommended)
@@ -30,10 +34,20 @@ if settings.DATABASE_URL.startswith("sqlite"):
     logger.warning("Using SQLite - PostGIS features will be limited")
 
 # Create database engine
-engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
+try:
+    engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
+    logger.info("✅ Database engine created successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to create database engine: {e}")
+    raise
 
-# Session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Session factory - FIXED VERSION
+SessionLocal = sessionmaker(
+    autocommit=False, 
+    autoflush=False, 
+    bind=engine,
+    expire_on_commit=False  # Prevent expiry issues
+)
 
 # Base class for models
 Base = declarative_base()
@@ -44,7 +58,7 @@ metadata = MetaData()
 
 def get_db() -> Generator[Session, None, None]:
     """
-    Dependency to get database session
+    Dependency to get database session - FIXED VERSION
     """
     db = SessionLocal()
     try:
@@ -111,6 +125,29 @@ def check_postgis():
     except Exception as e:
         logger.warning(f"⚠️ Could not check PostGIS availability: {e}")
         return False
+
+
+# Get database session for direct use
+def get_session() -> Session:
+    """Get a new database session for direct use"""
+    return SessionLocal()
+
+
+# Context manager for database sessions
+class DatabaseSession:
+    def __init__(self):
+        self.db = None
+    
+    def __enter__(self) -> Session:
+        self.db = SessionLocal()
+        return self.db
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.db.rollback()
+        else:
+            self.db.commit()
+        self.db.close()
 
 
 # Initialize database on import

@@ -1,3 +1,10 @@
+/*
+Fixed Dashboard Page with proper stats query
+frontend/src/pages/DashboardPage.tsx - STATS FIX
+*/
+
+// Replace the incident stats query in your DashboardPage.tsx with this fixed version:
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from 'react-query';
@@ -13,7 +20,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../hooks/useAuth';
-import { useIncidents } from '../hooks/useIncidents';
+import { useIncidents, useIncidentStats } from '../hooks/useIncidents';
 import { useRescueUnits } from '../hooks/useRescueUnits';
 import MapContainer from '../components/Map/MapContainer';
 import StatsCard from '../components/Dashboard/StatsCard';
@@ -43,16 +50,22 @@ export default function DashboardPage() {
     refetchInterval: refreshInterval,
   });
 
+  // FIXED: Use the useIncidentStats hook instead of manual query
   const {
     data: incidentStats,
     isLoading: statsLoading,
-  } = useQuery(
-    'incident-stats',
-    () => fetch('/api/incidents/stats/overview').then(res => res.json()),
-    {
-      refetchInterval: refreshInterval,
+    error: statsError,
+  } = useIncidentStats();
+
+  // Debug logging
+  useEffect(() => {
+    if (statsError) {
+      console.error('Stats loading error:', statsError);
     }
-  );
+    if (incidentStats) {
+      console.log('Stats loaded successfully:', incidentStats);
+    }
+  }, [incidentStats, statsError]);
 
   // Calculate dashboard metrics
   const criticalIncidents = incidents.filter(i => i.severity === 'critical').length;
@@ -79,7 +92,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [refreshInterval, refetchIncidents, refetchUnits]);
 
-  if (incidentsLoading || unitsLoading || statsLoading) {
+  if (incidentsLoading || unitsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
@@ -149,12 +162,12 @@ export default function DashboardPage() {
         
         <StatsCard
           title="Response Time"
-          value="12.5"
-          unit="min"
+          value={incidentStats?.average_resolution_time || "12.5"}
+          unit="h"
           icon={Clock}
           color="blue"
           trend="down"
-          subtitle="Average this week"
+          subtitle="Average resolution"
         />
         
         <StatsCard
@@ -166,6 +179,22 @@ export default function DashboardPage() {
           subtitle="Last 24 hours"
         />
       </motion.div>
+
+      {/* Stats Loading Error Display */}
+      {statsError && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+        >
+          <div className="flex items-center">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+            <span className="text-yellow-800 text-sm">
+              Unable to load detailed statistics. Using fallback data.
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -271,7 +300,9 @@ export default function DashboardPage() {
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-green-600">156</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {incidentStats?.resolved_incidents || 156}
+                </div>
                 <div className="text-sm text-gray-500">Resolved Today</div>
               </div>
               <div>
