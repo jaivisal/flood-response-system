@@ -1,3 +1,4 @@
+// frontend/src/components/Layout/Sidebar.tsx - IMPROVED VERSION
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -102,7 +103,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
+      <div className="hidden lg:flex lg:flex-shrink-0 lg:fixed lg:inset-y-0 lg:z-50">
         <div className="flex flex-col w-64">
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
             {/* Logo */}

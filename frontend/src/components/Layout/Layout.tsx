@@ -1,3 +1,4 @@
+// frontend/src/components/Layout/Layout.tsx - IMPROVED VERSION
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +9,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -27,13 +28,13 @@ export default function Layout() {
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main content */}
-      <div className="lg:pl-64 flex flex-col flex-1">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         {/* Navbar */}
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-        {/* Main content area */}
-        <main className="flex-1">
+        {/* Main content */}
+        <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <Outlet />

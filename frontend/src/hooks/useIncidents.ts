@@ -1,4 +1,4 @@
-// frontend/src/hooks/useIncidents.ts - FIXED VERSION
+// frontend/src/hooks/useIncidents.ts - COMPLETE FIXED VERSION
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
 import { Incident, CreateIncidentData } from '../types';
@@ -93,21 +93,58 @@ export function useIncidentStats() {
   );
 }
 
-// Create incident mutation
+// Create incident mutation - FIXED VERSION
 export function useCreateIncident() {
   const queryClient = useQueryClient();
 
   return useMutation<Incident, Error, CreateIncidentData>(
-    (data) => apiService.post('/incidents/', data),
+    async (data: CreateIncidentData) => {
+      console.log('🚨 useCreateIncident: Submitting data:', data);
+      
+      // Validate required fields before sending
+      if (!data.title || data.title.length < 5) {
+        throw new Error('Title must be at least 5 characters long');
+      }
+      
+      if (!data.location?.latitude || !data.location?.longitude) {
+        throw new Error('Location coordinates are required');
+      }
+      
+      if (!data.incident_type || !data.severity) {
+        throw new Error('Incident type and severity are required');
+      }
+      
+      try {
+        const result = await apiService.post('/incidents/', data);
+        console.log('✅ useCreateIncident: Success:', result);
+        return result;
+      } catch (error: any) {
+        console.error('❌ useCreateIncident: Failed:', error);
+        
+        // Re-throw with better error message
+        if (error.response?.status === 422) {
+          const detail = error.response.data?.detail;
+          if (detail && Array.isArray(detail)) {
+            const errorMessage = detail.map((err: any) => 
+              `${err.loc?.join('.')}: ${err.msg}`
+            ).join(', ');
+            throw new Error(`Validation Error: ${errorMessage}`);
+          }
+        }
+        
+        throw error;
+      }
+    },
     {
       onSuccess: (data) => {
+        console.log('🎉 Incident created successfully:', data);
         queryClient.invalidateQueries('incidents');
         queryClient.invalidateQueries('incident-stats');
         toast.success('Incident reported successfully');
       },
       onError: (error: any) => {
-        console.error('Error creating incident:', error);
-        toast.error('Failed to report incident');
+        console.error('💥 Error creating incident:', error);
+        // Don't show toast here as it's handled in the component
       },
     }
   );

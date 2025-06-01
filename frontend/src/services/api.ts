@@ -1,6 +1,6 @@
 /*
 Updated API service with better token handling
-frontend/src/services/api.ts - FIXED VERSION
+frontend/src/services/api.ts - COMPLETE FIXED VERSION
 */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -28,6 +28,12 @@ api.interceptors.request.use(
     } else if (!token) {
       console.log('⚠️ No token found for request:', config.url); // Debug log
     }
+    
+    // Special logging for incident creation
+    if (config.url?.includes('/incidents') && config.method === 'post') {
+      console.log('📝 Creating incident with data:', config.data);
+    }
+    
     return config;
   },
   (error) => {
@@ -39,6 +45,10 @@ api.interceptors.request.use(
 // Response interceptor for error handling - IMPROVED VERSION
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Log successful incident creation
+    if (response.config.url?.includes('/incidents') && response.config.method === 'post') {
+      console.log('✅ Incident created successfully:', response.data);
+    }
     return response;
   },
   (error) => {
@@ -87,8 +97,9 @@ api.interceptors.response.use(
         case 422:
           // Validation errors
           if (data.detail && Array.isArray(data.detail)) {
-            const errors = data.detail.map((err: any) => err.msg).join(', ');
+            const errors = data.detail.map((err: any) => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
             toast.error(`Validation error: ${errors}`);
+            console.error('📋 Validation details:', data.detail);
           } else {
             toast.error('Invalid data provided.');
           }
@@ -130,7 +141,7 @@ class ApiService {
   }
 
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    console.log('📡 POST request to:', url);
+    console.log('📡 POST request to:', url, 'with data:', data);
     const response = await api.post(url, data, config);
     return response.data;
   }

@@ -22,7 +22,7 @@ import ActiveUnits from '../components/Dashboard/ActiveUnits';
 import AlertsPanel from '../components/Dashboard/AlertsPanel';
 import RiskDashboard from '../components/Dashboard/RiskDashboard';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import IncidentForm from '../components/Forms/IncidentForm';
+import SimpleIncidentForm from '../components/Forms/IncidentForm';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -426,8 +426,8 @@ export default function DashboardPage() {
         <AlertTriangle className="w-6 h-6" />
       </motion.button>
 
-      {/* FIXED: Report Incident Form Modal */}
-      <IncidentForm
+      {/* FIXED: Simple Report Incident Form Modal */}
+      <SimpleIncidentForm
         isOpen={isReportFormOpen}
         onClose={handleCloseReportForm}
         onSuccess={handleReportSuccess}
