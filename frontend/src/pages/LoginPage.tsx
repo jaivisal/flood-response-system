@@ -201,7 +201,7 @@ export default function LoginPage() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center text-blue-100 text-sm"
         >
-          <p>© 2024 Emergency Flood Response System</p>
+          <p>JAIV</p>
           <p className="mt-1">Built for emergency management and coordination</p>
         </motion.div>
       </div>

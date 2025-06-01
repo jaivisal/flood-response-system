@@ -1,8 +1,8 @@
 """
 Enhanced User model with better password handling and validation
-backend/app/models/user.py - UPDATED VERSION
+backend/app/models/user.py - FIXED VERSION WITH CORRECT RELATIONSHIPS
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from passlib.context import CryptContext
@@ -46,7 +46,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.FIELD_RESPONDER)
+    role = Column(String, nullable=False, default="field_responder")
     
     # Status fields
     is_active = Column(Boolean, default=True)
@@ -80,9 +80,26 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relationships
-    reported_incidents = relationship("Incident", back_populates="reporter", cascade="all, delete-orphan")
-    # Add more relationships as needed
+    # FIXED: Relationships with explicit foreign_keys specification
+    reported_incidents = relationship(
+        "Incident", 
+        foreign_keys="Incident.reporter_id",
+        back_populates="reporter", 
+        cascade="all, delete-orphan"
+    )
+    
+    # Additional relationships for incidents assigned/verified by this user
+    assigned_incidents = relationship(
+        "Incident",
+        foreign_keys="Incident.assigned_by_id",
+        back_populates="assigned_by"
+    )
+    
+    verified_incidents = relationship(
+        "Incident",
+        foreign_keys="Incident.verified_by_id", 
+        back_populates="verified_by"
+    )
 
     def verify_password(self, password: str) -> bool:
         """Verify password against hash with enhanced security"""

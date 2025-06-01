@@ -12,17 +12,17 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Database Configuration - Supabase PostgreSQL
-    DATABASE_URL: str = "postgresql://postgres:jaivmessi@db.yzbzlqixillvacxigdtl.supabase.co:5432/postgres"
+    DATABASE_URL: str = "postgresql://postgres:jaivmessi@db.tbhxowiyqfskmaszqwxw.supabase.co:5432/postgres"
     
     # Alternative database URL formats for different environments
-    DATABASE_HOST: str = "db.yzbzlqixillvacxigdtl.supabase.co"
+    DATABASE_HOST: str = "db.tbhxowiyqfskmaszqwxw"
     DATABASE_PORT: int = 5432
     DATABASE_NAME: str = "postgres"
     DATABASE_USER: str = "postgres"
     DATABASE_PASSWORD: str = "jaivmessi"
     
     # JWT Authentication
-    SECRET_KEY: str = "flood-response-secret-key-2024-change-in-production-secure-key-456789"
+    SECRET_KEY: str = "jaivmessi"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     

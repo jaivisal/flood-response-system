@@ -117,6 +117,8 @@ def upgrade() -> None:
         sa.Column('zone_type', postgresql.ENUM('residential', 'commercial', 'industrial', 'agricultural', 'natural', 'mixed', name='zonetype'), nullable=False),
         sa.Column('zone_boundary', geoalchemy2.Geography('POLYGON', srid=4326), nullable=True),
         sa.Column('center_point', geoalchemy2.Geography('POINT', srid=4326), nullable=True),
+        sa.Column('center_latitude', sa.Float(), nullable=True),
+        sa.Column('center_longitude', sa.Float(), nullable=True),
         sa.Column('area_sqkm', sa.Float(), nullable=True),
         sa.Column('population_estimate', sa.Integer(), server_default=sa.text('0')),
         sa.Column('residential_units', sa.Integer(), server_default=sa.text('0')),
@@ -263,7 +265,7 @@ def upgrade() -> None:
     op.execute("""
         INSERT INTO flood_zones (
             name, description, zone_code, risk_level, zone_type, 
-            center_point, area_sqkm, population_estimate, 
+            center_point, center_latitude, center_longitude, area_sqkm, population_estimate, 
             residential_units, commercial_units, district, municipality,
             responsible_officer, emergency_contact
         ) VALUES 
@@ -274,6 +276,8 @@ def upgrade() -> None:
             'high', 
             'residential',
             ST_GeogFromText('POINT(78.1198 9.9252)'),
+            9.9252,
+            78.1198,
             15.5,
             25000,
             5000,
@@ -290,6 +294,8 @@ def upgrade() -> None:
             'medium',
             'commercial',
             ST_GeogFromText('POINT(78.1278 9.9195)'),
+            9.9195,
+            78.1278,
             8.2,
             15000,
             2000,
@@ -306,6 +312,8 @@ def upgrade() -> None:
             'very_high',
             'mixed',
             ST_GeogFromText('POINT(78.1196 9.9195)'),
+            9.9195,
+            78.1196,
             3.7,
             8000,
             1200,

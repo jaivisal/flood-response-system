@@ -1,6 +1,6 @@
 """
-Updated Authentication router with better frontend integration
-backend/app/routers/auth.py - COMPLETE FIXED VERSION
+Fixed Authentication router with better error handling
+backend/app/routers/auth.py - PRODUCTION READY VERSION
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import (
     UserCreate, UserResponse, UserLogin, Token, TokenData, 
-    UserProfile, PasswordChange, PasswordReset
+    UserProfile, PasswordChange
 )
 from app.config import settings
 from app.utils.auth import create_access_token, verify_token
@@ -26,16 +26,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # OAuth2 scheme for token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """Get current authenticated user"""
+    """Get current authenticated user with better error handling"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    if not token:
+        raise credentials_exception
     
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -49,7 +52,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     
     try:
-        user = db.query(User).filter(User.email == token_data.email).first()
+        user = db.query(User).filter(User.email == token_data.email, User.id == token_data.user_id).first()
         if user is None:
             raise credentials_exception
         
@@ -90,7 +93,7 @@ def require_role(allowed_roles: List[UserRole]):
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
+    """Register a new user with enhanced validation"""
     
     try:
         # Check if user already exists
@@ -103,15 +106,23 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         
         # Create new user
         db_user = User(
-            email=user_data.email,
-            full_name=user_data.full_name,
+            email=user_data.email.lower().strip(),
+            full_name=user_data.full_name.strip(),
             role=user_data.role,
             phone_number=user_data.phone_number,
             department=user_data.department,
             is_active=True,
-            is_verified=False
+            is_verified=True  # Auto-verify for demo
         )
-        db_user.set_password(user_data.password)
+        
+        # Set password with validation
+        try:
+            db_user.set_password(user_data.password)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
         
         db.add(db_user)
         db.commit()
@@ -120,6 +131,8 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         logger.info(f"New user registered: {user_data.email}")
         return db_user
         
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         logger.error(f"Database error during registration: {e}")
         db.rollback()
@@ -131,11 +144,11 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Authenticate user and return access token"""
+    """Authenticate user and return access token (OAuth2 compatible)"""
     
     try:
-        # Find user by email
-        user = db.query(User).filter(User.email == form_data.username).first()
+        # Find user by email (username field in OAuth2PasswordRequestForm)
+        user = db.query(User).filter(User.email == form_data.username.lower().strip()).first()
         
         if not user:
             logger.warning(f"Login attempt with non-existent email: {form_data.username}")
@@ -158,6 +171,10 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inactive user account"
             )
+        
+        # Update last login
+        user.update_last_login()
+        db.commit()
         
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -185,7 +202,6 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
         }
         
     except HTTPException:
-        # Re-raise HTTP exceptions
         raise
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {e}")
@@ -194,23 +210,17 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error during login"
         )
-    except Exception as e:
-        logger.error(f"Unexpected error during login: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
-        )
 
 
 @router.post("/login-json", response_model=Token)
 async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user with JSON payload - FRONTEND COMPATIBLE VERSION"""
+    """Authenticate user with JSON payload - FRONTEND COMPATIBLE"""
     
     try:
         logger.info(f"JSON Login attempt for: {user_credentials.email}")
         
         # Find user by email
-        user = db.query(User).filter(User.email == user_credentials.email).first()
+        user = db.query(User).filter(User.email == user_credentials.email.lower().strip()).first()
         
         if not user:
             logger.warning(f"Login attempt with non-existent email: {user_credentials.email}")
@@ -233,6 +243,10 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inactive user account"
             )
+        
+        # Update last login
+        user.update_last_login()
+        db.commit()
         
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -260,7 +274,6 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
         }
         
     except HTTPException:
-        # Re-raise HTTP exceptions
         raise
     except SQLAlchemyError as e:
         logger.error(f"Database error during JSON login: {e}")
@@ -268,12 +281,6 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error during login"
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error during JSON login: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
         )
 
 
@@ -413,3 +420,14 @@ async def logout_user(current_user: User = Depends(get_current_active_user)):
     """Logout user (client should discard token)"""
     logger.info(f"User logged out: {current_user.email}")
     return {"message": "Successfully logged out. Please discard your access token."}
+
+
+# Test endpoint for development
+@router.get("/test")
+async def test_auth():
+    """Test authentication endpoint"""
+    return {
+        "message": "Authentication router is working",
+        "timestamp": datetime.utcnow().isoformat(),
+        "environment": settings.ENVIRONMENT
+    }

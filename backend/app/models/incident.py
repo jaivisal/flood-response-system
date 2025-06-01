@@ -1,6 +1,6 @@
 """
 Enhanced Incident model with better GIS support and additional fields
-backend/app/models/incident.py - UPDATED VERSION
+backend/app/models/incident.py - FIXED VERSION WITH CORRECT RELATIONSHIPS
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, Float, Boolean, JSON
 from sqlalchemy.orm import relationship
@@ -236,11 +236,29 @@ class Incident(Base):
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     closed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
-    reporter = relationship("User", foreign_keys=[reporter_id], back_populates="reported_incidents")
-    assigned_unit = relationship("RescueUnit", back_populates="assigned_incidents")
-    assigned_by = relationship("User", foreign_keys=[assigned_by_id])
-    verified_by = relationship("User", foreign_keys=[verified_by_id])
+    # FIXED: Relationships with explicit foreign_keys specification
+    reporter = relationship(
+        "User", 
+        foreign_keys=[reporter_id], 
+        back_populates="reported_incidents"
+    )
+    
+    assigned_unit = relationship(
+        "RescueUnit", 
+        back_populates="assigned_incidents"
+    )
+    
+    assigned_by = relationship(
+        "User", 
+        foreign_keys=[assigned_by_id],
+        back_populates="assigned_incidents"
+    )
+    
+    verified_by = relationship(
+        "User", 
+        foreign_keys=[verified_by_id],
+        back_populates="verified_incidents"
+    )
 
     # Properties for frontend compatibility
     @property
