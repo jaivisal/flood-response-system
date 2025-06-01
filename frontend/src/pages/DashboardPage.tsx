@@ -24,11 +24,11 @@ import RiskDashboard from '../components/Dashboard/RiskDashboard';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import IncidentForm from '../components/Forms/IncidentForm';
 
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+
   // Fetch data with auto-refresh
   const {
     data: incidents = [],
@@ -60,6 +60,26 @@ export default function DashboardPage() {
     isLoading: statsLoading,
     error: statsError,
   } = useIncidentStats();
+
+  // FIXED: Report incident handlers
+  const handleReportIncident = () => {
+    console.log('Dashboard: Report Incident button clicked'); // Debug log
+    setIsReportFormOpen(true);
+  };
+
+  const handleCloseReportForm = () => {
+    console.log('Dashboard: Closing report form'); // Debug log
+    setIsReportFormOpen(false);
+  };
+
+  const handleReportSuccess = (incident: any) => {
+    console.log('Dashboard: Incident created successfully:', incident);
+    setIsReportFormOpen(false);
+    // Refresh all data
+    refetchIncidents();
+    refetchUnits();
+    refetchZones();
+  };
 
   // Debug logging
   useEffect(() => {
@@ -392,27 +412,26 @@ export default function DashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* FIXED: Floating Action Button for Report Incident */}
       <motion.button
-  initial={{ opacity: 0, scale: 0 }}
-  animate={{ opacity: 1, scale: 1 }}
-  transition={{ delay: 0.8 }}
-  onClick={() => setIsReportFormOpen(true)}
-  className="fixed bottom-6 right-6 w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40"
-  title="Report Emergency Incident"
->
-  <AlertTriangle className="w-6 h-6" />
-</motion.button>
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.8 }}
+        onClick={handleReportIncident}
+        type="button"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40"
+        title="Report Emergency Incident"
+      >
+        <AlertTriangle className="w-6 h-6" />
+      </motion.button>
 
-{/* Report Incident Form Modal */}
-<IncidentForm
-  isOpen={isReportFormOpen}
-  onClose={() => setIsReportFormOpen(false)}
-  onSuccess={(incident) => {
-    console.log('Incident created:', incident);
-    // Optionally refresh data
-  }}
-/>
-
+      {/* FIXED: Report Incident Form Modal */}
+      <IncidentForm
+        isOpen={isReportFormOpen}
+        onClose={handleCloseReportForm}
+        onSuccess={handleReportSuccess}
+      />
     </div>
   );
 }

@@ -100,13 +100,14 @@ export default function StatsCard({
 
   // Safely handle the value - ensure it's never undefined or null
   const displayValue = value ?? 0;
+  const displayTrendValue = trendValue ?? 0;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: onClick ? 1.02 : 1 }}
-      whileTap={{ scale: onClick ? 0.98 : 1 }}
+      whileHover={onClick ? { scale: 1.02 } : {}}
+      whileTap={onClick ? { scale: 0.98 } : {}}
       className={`relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border ${colors.border} ${
         onClick ? 'cursor-pointer hover:shadow-md' : ''
       } transition-all duration-200`}
@@ -124,9 +125,9 @@ export default function StatsCard({
           {trend && (
             <div className="flex items-center space-x-1">
               {getTrendIcon(trend)}
-              {trendValue && (
+              {trendValue !== undefined && (
                 <span className={`text-sm font-medium ${getTrendColor(trend)}`}>
-                  {trendValue}%
+                  {Math.abs(displayTrendValue)}%
                 </span>
               )}
             </div>
@@ -137,7 +138,7 @@ export default function StatsCard({
         <div className="mt-4">
           <div className="flex items-baseline space-x-2">
             <h3 className="text-3xl font-bold text-gray-900">
-              {displayValue}
+              {displayValue.toLocaleString()}
             </h3>
             {unit && (
               <span className="text-lg font-medium text-gray-500">{unit}</span>

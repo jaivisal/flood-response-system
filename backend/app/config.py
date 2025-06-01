@@ -1,6 +1,5 @@
 """
 Configuration settings for the Emergency Flood Response API
-UPDATED VERSION with comprehensive CORS settings
 """
 from pydantic_settings import BaseSettings
 from typing import List, Optional
@@ -12,10 +11,10 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Database Configuration
-    DATABASE_URL: str = "postgresql://postgres:jaivmessi@db.yzbzlqixillvacxigdtl.supabase.co:5432/postgres"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/flood_response"
     
     # JWT Authentication
-    SECRET_KEY: str = "jaivmessi"
+    SECRET_KEY: str = "flood-response-secret-key-2024-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
@@ -32,13 +31,6 @@ class Settings(BaseSettings):
     DEFAULT_SRID: int = 4326
     SEARCH_RADIUS_KM: float = 10.0
     
-    # Optional settings
-    SUPABASE_URL: Optional[str] = "https://yzbzlqixillvacxigdtl.supabase.co"
-    SUPABASE_ANON_KEY: Optional[str] = None
-    CLOUDINARY_CLOUD_NAME: Optional[str] = None
-    CLOUDINARY_API_KEY: Optional[str] = None
-    CLOUDINARY_API_SECRET: Optional[str] = None
-    
     # Performance settings
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
@@ -51,7 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def ALLOWED_ORIGINS(self) -> List[str]:
-        """Get allowed CORS origins - COMPREHENSIVE VERSION"""
+        """Get allowed CORS origins"""
         # Development origins
         dev_origins = [
             "http://localhost:3000",
@@ -60,35 +52,20 @@ class Settings(BaseSettings):
             "http://localhost:5175",
             "http://localhost:5176",
             "http://localhost:5177",
-            "http://localhost:5178",
-            "http://localhost:5179",
-            "http://localhost:5180",
-            "http://localhost:5181",
-            "http://localhost:5182",  # Your current frontend port
-            "http://localhost:5183",
-            "http://localhost:5184",
-            "http://localhost:5185",
+            "http://localhost:8080",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
             "http://127.0.0.1:5174",
             "http://127.0.0.1:5175",
             "http://127.0.0.1:5176",
             "http://127.0.0.1:5177",
-            "http://127.0.0.1:5178",
-            "http://127.0.0.1:5179",
-            "http://127.0.0.1:5180",
-            "http://127.0.0.1:5181",
-            "http://127.0.0.1:5182",  # Your current frontend port
-            "http://127.0.0.1:5183",
-            "http://127.0.0.1:5184",
-            "http://127.0.0.1:5185",
+            "http://127.0.0.1:8080",
         ]
         
         # Production origins
         prod_origins = [
             "https://emergency-flood-response.vercel.app",
             "https://flood-response.netlify.app",
-            "https://emergency-response.com",
         ]
         
         # Environment-specific origins
@@ -97,15 +74,7 @@ class Settings(BaseSettings):
         if cors_origins_env:
             env_origins = [origin.strip() for origin in cors_origins_env.split(",")]
         
-        # Combine all origins
-        all_origins = dev_origins + prod_origins + env_origins
-        
-        # In development, also allow wildcard for easier testing
-        if self.ENVIRONMENT == "development":
-            # Note: In production, you should NOT use "*" for security reasons
-            return all_origins
-        
-        return all_origins
+        return dev_origins + prod_origins + env_origins
 
 
 @lru_cache()
@@ -119,14 +88,6 @@ settings = get_settings()
 
 # Print configuration status
 print(f"🔧 Configuration loaded for {settings.ENVIRONMENT} environment")
-print(f"🗄️ Database configured")
+print(f"🗄️ Database configured: {settings.DATABASE_URL}")
 print(f"🌐 CORS Origins: {len(settings.ALLOWED_ORIGINS)} configured")
 print(f"🔒 JWT Expiry: {settings.ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
-
-# Debug: Print first few CORS origins
-if settings.DEBUG:
-    print(f"🔍 CORS Origins (first 5): {settings.ALLOWED_ORIGINS[:5]}...")
-    if "http://localhost:5182" in settings.ALLOWED_ORIGINS:
-        print("✅ Port 5182 is included in CORS origins")
-    else:
-        print("⚠️ Port 5182 is NOT included in CORS origins")

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import {
@@ -33,6 +33,7 @@ export default function IncidentsPage() {
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | ''>('');
   const [typeFilter, setTypeFilter] = useState<IncidentType | ''>('');
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
+  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
 
   // Fetch incidents
   const {
@@ -44,10 +45,22 @@ export default function IncidentsPage() {
     refetchInterval: 15000, // Refetch every 15 seconds for real-time updates
   });
 
-  // Fetch incident statistics
-  const { data: incidentStats, isLoading: statsLoading } = useIncidentStats();
-  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+  // Fetch incident statistics - FIXED VERSION
+  const { 
+    data: incidentStats, 
+    isLoading: statsLoading,
+    error: statsError 
+  } = useIncidentStats();
 
+  // Debug logging - IMPROVED
+  useEffect(() => {
+    if (statsError) {
+      console.error('📊 Stats loading error:', statsError);
+    }
+    if (incidentStats) {
+      console.log('📊 Stats loaded successfully:', incidentStats);
+    }
+  }, [incidentStats, statsError]);
 
   // Filter incidents based on search and filters
   const filteredIncidents = useMemo(() => {
@@ -67,13 +80,23 @@ export default function IncidentsPage() {
     });
   }, [incidents, searchTerm, severityFilter, statusFilter, typeFilter, showCriticalOnly]);
 
-  // Calculate statistics with safe fallbacks
+  // Calculate statistics with safe fallbacks - IMPROVED VERSION
   const stats = useMemo(() => {
-    const totalIncidents = incidents?.length || 0;
-    const criticalIncidents = incidents?.filter(i => i.severity === 'critical').length || 0;
-    const activeIncidents = incidents?.filter(i => !['resolved', 'closed'].includes(i.status)).length || 0;
-    const resolvedIncidents = incidents?.filter(i => ['resolved', 'closed'].includes(i.status)).length || 0;
-    const unassignedIncidents = incidents?.filter(i => !i.assigned_unit_id && i.status === 'reported').length || 0;
+    if (!incidents || incidents.length === 0) {
+      return {
+        totalIncidents: 0,
+        criticalIncidents: 0,
+        activeIncidents: 0,
+        resolvedIncidents: 0,
+        unassignedIncidents: 0,
+      };
+    }
+
+    const totalIncidents = incidents.length;
+    const criticalIncidents = incidents.filter(i => i.severity === 'critical').length;
+    const activeIncidents = incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length;
+    const resolvedIncidents = incidents.filter(i => ['resolved', 'closed'].includes(i.status)).length;
+    const unassignedIncidents = incidents.filter(i => !i.assigned_unit_id && i.status === 'reported').length;
 
     return {
       totalIncidents,
@@ -176,6 +199,81 @@ export default function IncidentsPage() {
     }
   };
 
+  // Stats Cards component with safe data access - UPDATED
+  const StatsCards = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
+    >
+      <StatsCard
+        title="Total Incidents"
+        value={stats.totalIncidents}
+        icon={AlertTriangle}
+        color="blue"
+        subtitle={`${filteredIncidents.length} shown`}
+      />
+      
+      <StatsCard
+        title="Critical"
+        value={stats.criticalIncidents}
+        icon={AlertTriangle}
+        color="red"
+        trend={stats.criticalIncidents > 0 ? 'up' : 'stable'}
+      />
+      
+      <StatsCard
+        title="Active"
+        value={stats.activeIncidents}
+        icon={Activity}
+        color="orange"
+        subtitle="In progress"
+      />
+      
+      <StatsCard
+        title="Unassigned"
+        value={stats.unassignedIncidents}
+        icon={Clock}
+        color="yellow"
+        subtitle="Need attention"
+      />
+      
+      <StatsCard
+        title="Resolved"
+        value={stats.resolvedIncidents}
+        icon={CheckCircle}
+        color="green"
+        subtitle="Completed"
+      />
+    </motion.div>
+  );
+
+  // Stats Loading Error Display - IMPROVED
+  const StatsErrorDisplay = () => {
+    if (!statsError && !statsLoading) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+      >
+        <div className="flex items-center">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+          <span className="text-yellow-800 text-sm">
+            {statsLoading ? 'Loading statistics...' : 'Unable to load detailed statistics. Using live data.'}
+          </span>
+        </div>
+        {incidentStats && (
+          <div className="mt-2 text-xs text-yellow-700">
+            API Stats: {incidentStats.total_incidents} total, {incidentStats.critical_incidents} critical
+          </div>
+        )}
+      </motion.div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -192,12 +290,18 @@ export default function IncidentsPage() {
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Incidents</h3>
         <p className="text-gray-600 mb-4">Failed to load incident data. Please try again.</p>
-        <button 
-            onClick={() => setIsReportFormOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        <button
+          onClick={handleRefresh}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-4"
         >
-        <Plus className="w-4 h-4 mr-2" />
-        Report Incident
+          Retry
+        </button>
+        <button 
+          onClick={() => setIsReportFormOpen(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Report Incident
         </button>
       </div>
     );
@@ -237,7 +341,10 @@ export default function IncidentsPage() {
             Export
           </button>
           
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <button 
+            onClick={() => setIsReportFormOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Report Incident
           </button>
@@ -245,52 +352,10 @@ export default function IncidentsPage() {
       </motion.div>
 
       {/* Statistics Cards - FIXED VERSION */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
-      >
-        <StatsCard
-          title="Total Incidents"
-          value={stats.totalIncidents}
-          icon={AlertTriangle}
-          color="blue"
-          subtitle={`${filteredIncidents.length} shown`}
-        />
-        
-        <StatsCard
-          title="Critical"
-          value={stats.criticalIncidents}
-          icon={AlertTriangle}
-          color="red"
-          trend={stats.criticalIncidents > 0 ? 'up' : 'stable'}
-        />
-        
-        <StatsCard
-          title="Active"
-          value={stats.activeIncidents}
-          icon={Activity}
-          color="orange"
-          subtitle="In progress"
-        />
-        
-        <StatsCard
-          title="Unassigned"
-          value={stats.unassignedIncidents}
-          icon={Clock}
-          color="yellow"
-          subtitle="Need attention"
-        />
-        
-        <StatsCard
-          title="Resolved"
-          value={stats.resolvedIncidents}
-          icon={CheckCircle}
-          color="green"
-          subtitle="Completed"
-        />
-      </motion.div>
+      <StatsCards />
+
+      {/* Stats Loading Error Display */}
+      <StatsErrorDisplay />
 
       {/* Filters and Search */}
       <motion.div
@@ -656,14 +721,16 @@ export default function IncidentsPage() {
           </div>
         </motion.div>
       )}
+
+      {/* Report Incident Form Modal */}
       <IncidentForm
         isOpen={isReportFormOpen}
         onClose={() => setIsReportFormOpen(false)}
         onSuccess={(incident) => {
-        console.log('Incident created:', incident);
-        handleRefresh(); // Refresh the incidents list
-     }}
-/>
+          console.log('Incident created:', incident);
+          handleRefresh(); // Refresh the incidents list
+        }}
+      />
     </div>
   );
 }

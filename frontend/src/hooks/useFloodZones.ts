@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
-import { FloodZone } from '../types';
+import { FloodZone, CreateFloodZoneData, FloodZoneStats } from '../types';
 import toast from 'react-hot-toast';
 
 // Define missing types

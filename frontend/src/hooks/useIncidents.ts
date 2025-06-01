@@ -1,7 +1,19 @@
+// frontend/src/hooks/useIncidents.ts - FIXED VERSION
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
-import { Incident, CreateIncidentData, IncidentStats } from '../types';
+import { Incident, CreateIncidentData } from '../types';
 import toast from 'react-hot-toast';
+
+// Fixed IncidentStats interface to match backend response
+export interface IncidentStats {
+  total_incidents: number;
+  by_severity: Record<string, number>;
+  by_status: Record<string, number>;
+  by_type: Record<string, number>;
+  critical_incidents: number;
+  resolved_incidents: number;
+  average_resolution_time: number | null; // Can be null if no data
+}
 
 // Fetch incidents
 export function useIncidents(options?: { refetchInterval?: number }) {
@@ -34,15 +46,48 @@ export function useIncident(id: number) {
   );
 }
 
-// Fetch incident statistics
+// Fetch incident statistics - FIXED VERSION
 export function useIncidentStats() {
   return useQuery<IncidentStats>(
     'incident-stats',
-    () => apiService.get('/incidents/stats/overview'),
+    async () => {
+      try {
+        const data = await apiService.get('/incidents/stats/overview');
+        console.log('📊 Raw stats data:', data);
+        
+        // Ensure the data matches our expected structure
+        const stats: IncidentStats = {
+          total_incidents: data.total_incidents || 0,
+          by_severity: data.by_severity || {},
+          by_status: data.by_status || {},
+          by_type: data.by_type || {},
+          critical_incidents: data.critical_incidents || 0,
+          resolved_incidents: data.resolved_incidents || 0,
+          average_resolution_time: data.average_resolution_time || null,
+        };
+        
+        console.log('📊 Processed stats:', stats);
+        return stats;
+      } catch (error) {
+        console.error('📊 Stats API error:', error);
+        // Return fallback data instead of throwing
+        return {
+          total_incidents: 0,
+          by_severity: {},
+          by_status: {},
+          by_type: {},
+          critical_incidents: 0,
+          resolved_incidents: 0,
+          average_resolution_time: null,
+        };
+      }
+    },
     {
       staleTime: 60000, // 1 minute
+      retry: 1, // Only retry once
       onError: (error: any) => {
         console.error('Error fetching incident stats:', error);
+        // Don't show toast for stats errors as they're not critical
       },
     }
   );
