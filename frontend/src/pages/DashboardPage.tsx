@@ -160,7 +160,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Stats Cards*/}
+      {/* Stats Cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -190,7 +190,7 @@ export default function DashboardPage() {
           value={incidentStats?.average_resolution_time || "12.5"}
           unit="h"
           icon={Clock}
-          color="blue"
+          color="red"
           trend="down"
           subtitle="Average resolution"
         />
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                <MapPin className="w-5 h-5 mr-2 text-red-600" />
                 Live Situation Map
               </h2>
               <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -325,7 +325,7 @@ export default function DashboardPage() {
                 <span className="text-sm text-gray-600">Unit Utilization</span>
                 <div className="flex items-center">
                   <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                    <div className="bg-red-500 h-2 rounded-full" style={{ width: '65%' }}></div>
                   </div>
                   <span className="text-sm font-medium">65%</span>
                 </div>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                   <div className="text-sm text-gray-500">Resolved Today</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-600">{availableUnits}</div>
+                  <div className="text-2xl font-bold text-red-600">{availableUnits}</div>
                   <div className="text-sm text-gray-500">Active Teams</div>
                 </div>
               </div>

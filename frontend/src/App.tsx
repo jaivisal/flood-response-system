@@ -18,6 +18,9 @@ import LoadingSpinner from './components/Common/LoadingSpinner';
 
 // Styles
 import './index.css';
+// In your App.tsx
+
+
 
 // Create a client
 const queryClient = new QueryClient({

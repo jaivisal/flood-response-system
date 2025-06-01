@@ -28,7 +28,7 @@ const getAlertIcon = (type: string) => {
     case 'warning':
       return <Activity className="w-5 h-5 text-yellow-600" />;
     case 'info':
-      return <Users className="w-5 h-5 text-blue-600" />;
+      return <Users className="w-5 h-5 text-red-600" />;
     default:
       return <AlertTriangle className="w-5 h-5 text-gray-600" />;
   }
@@ -43,7 +43,7 @@ const getAlertColor = (type: string) => {
     case 'warning':
       return 'bg-yellow-50 border-yellow-200 text-yellow-800';
     case 'info':
-      return 'bg-blue-50 border-blue-200 text-blue-800';
+      return 'bg-red-50 border-red-200 text-red-800';
     default:
       return 'bg-gray-50 border-gray-200 text-gray-800';
   }
@@ -249,7 +249,7 @@ export default function AlertsPanel({ incidents }: AlertsPanelProps) {
 
             {/* Pulse animation for critical alerts */}
             {alert.type === 'critical' && (
-              <div className="absolute -inset-1 bg-red-400 rounded-lg opacity-25 animate-pulse pointer-events-none"></div>
+              <div className="absolute -inset-1 bg--400 rounded-lg opacity-25 animate-pulse pointer-events-none"></div>
             )}
           </motion.div>
         ))}

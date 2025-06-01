@@ -3,7 +3,7 @@
 @import 'tailwindcss/utilities';
 
 /* Custom CSS for Emergency Flood Response System */
-
+/* EMERGENCY: STOP RISK ASSESSMENT BLINKING */
 /* Base styles */
 @layer base {
   html {
@@ -333,3 +333,5 @@
 @media (prefers-color-scheme: dark) {
   /* Dark mode styles would go here */
 }
+/* EMERGENCY: STOP ALL RED BLINKING GLOBALLY */
+/* Look for styles like this */

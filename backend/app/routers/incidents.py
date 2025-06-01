@@ -1,6 +1,6 @@
 """
 Updated Incidents router with improved frontend integration
-backend/app/routers/incidents.py - COMPLETE FIXED VERSION
+backend/app/routers/incidents.py - COMPLETE FIXED VERSION FOR PROPERTIES
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -29,6 +29,19 @@ from app.utils.spatial import find_nearest_rescue_unit
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def safe_get_property(obj, prop_name, default=None):
+    """Safely get a property or method result from an object"""
+    try:
+        attr = getattr(obj, prop_name, default)
+        # If it's callable (method), call it; if it's a property, return it
+        if callable(attr):
+            return attr()
+        return attr
+    except Exception as e:
+        logger.warning(f"Error getting {prop_name}: {e}")
+        return default
 
 
 @router.post("/", response_model=IncidentResponse, status_code=status.HTTP_201_CREATED)
@@ -507,7 +520,7 @@ async def assign_incident_to_unit(
                 detail="Rescue unit not found"
             )
         
-        if not rescue_unit.is_available():
+        if not safe_get_property(rescue_unit, 'is_available', False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Rescue unit is not available"
@@ -580,9 +593,9 @@ def _format_incident_response(incident: Incident) -> IncidentResponse:
             updated_at=incident.updated_at,
             resolved_at=incident.resolved_at,
             coordinates=(lat, lng) if lat and lng else None,
-            is_critical=incident.is_critical(),
-            requires_immediate_attention=incident.requires_immediate_attention(),
-            severity_color=incident.get_severity_color()
+            is_critical=safe_get_property(incident, 'is_critical', False),
+            requires_immediate_attention=safe_get_property(incident, 'requires_immediate_attention', False),
+            severity_color=safe_get_property(incident, 'get_severity_color', '#6b7280')
         )
     except Exception as e:
         logger.error(f"Error formatting incident response: {e}")
@@ -608,14 +621,14 @@ def _format_incident_response(incident: Incident) -> IncidentResponse:
             updated_at=incident.updated_at,
             resolved_at=incident.resolved_at,
             coordinates=(9.9252, 78.1198),
-            is_critical=incident.is_critical(),
-            requires_immediate_attention=incident.requires_immediate_attention(),
-            severity_color=incident.get_severity_color()
+            is_critical=False,
+            requires_immediate_attention=False,
+            severity_color='#6b7280'
         )
 
 
 def _format_incident_summary(incident: Incident) -> IncidentSummary:
-    """Format incident summary for lists - FRONTEND COMPATIBLE"""
+    """Format incident summary for lists - FRONTEND COMPATIBLE - FIXED VERSION"""
     try:
         # Extract coordinates safely
         lat, lng = 9.9252, 78.1198  # Default coordinates
@@ -642,8 +655,8 @@ def _format_incident_summary(incident: Incident) -> IncidentSummary:
             longitude=lng,
             address=incident.address,
             created_at=incident.created_at,
-            is_critical=incident.is_critical(),
-            severity_color=incident.get_severity_color()
+            is_critical=safe_get_property(incident, 'is_critical', False),  # FIXED: Use safe getter
+            severity_color=safe_get_property(incident, 'get_severity_color', '#6b7280')  # FIXED: Use safe getter
         )
     except Exception as e:
         logger.error(f"Error formatting incident summary: {e}")
@@ -658,6 +671,6 @@ def _format_incident_summary(incident: Incident) -> IncidentSummary:
             longitude=78.1198,
             address=incident.address,
             created_at=incident.created_at,
-            is_critical=incident.is_critical(),
-            severity_color=incident.get_severity_color()
+            is_critical=False,  # FIXED: Safe default
+            severity_color='#6b7280'  # FIXED: Safe default
         )

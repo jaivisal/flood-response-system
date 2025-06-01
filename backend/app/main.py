@@ -222,11 +222,12 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# FIXED: Include routers without API prefix - routes are directly accessible
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
-app.include_router(flood_zones.router, prefix="/api/floodzones", tags=["Flood Zones"])
-app.include_router(rescue_units.router, prefix="/api/rescue-units", tags=["Rescue Units"])
+# FIXED: Include routers with correct prefixes that match frontend expectations
+# Frontend expects these exact paths (checked from logs):
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])  # FIXED: Removed /api
+app.include_router(flood_zones.router, prefix="/floodzones", tags=["Flood Zones"])  # FIXED: Removed /api
+app.include_router(rescue_units.router, prefix="/rescue-units", tags=["Rescue Units"])  # FIXED: Removed /api
 
 # Static files for uploaded images
 uploads_dir = "uploads"
@@ -251,10 +252,10 @@ async def root():
         "database_connected": test_connection(),
         "postgis_available": check_postgis(),
         "available_endpoints": {
-            "auth": "/api/auth/",
-            "incidents": "/api/incidents/",
-            "flood_zones": "/api/floodzones/",
-            "rescue_units": "/api/rescue-units/"
+            "auth": "/auth/",
+            "incidents": "/incidents/",  # FIXED: Updated to match new routes
+            "flood_zones": "/floodzones/",  # FIXED: Updated to match new routes
+            "rescue_units": "/rescue-units/"  # FIXED: Updated to match new routes
         }
     }
 
@@ -344,9 +345,9 @@ async def api_status():
                     "flood_zones": zone_count
                 },
                 "endpoints": {
-                    "login": "/api/auth/login-json",
-                    "register": "/api/auth/register",
-                    "me": "/api/auth/me"
+                    "login": "/auth/login-json",
+                    "register": "/auth/register",
+                    "me": "/auth/me"
                 },
                 "last_updated": "2024-12-06T10:00:00Z"
             }
@@ -437,7 +438,7 @@ if settings.ENVIRONMENT == "development":
                 }
             )
 
-# List all available routes for debugging
+# Debug: List all available routes
 @app.get("/debug/routes")
 async def list_routes():
     """List all available routes for debugging"""
@@ -463,9 +464,12 @@ async def startup_message():
     logger.info(f"📚 Documentation: /docs")
     logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
     logger.info("🛣️ Available endpoints:")
-    logger.info("   - POST /api/auth/login-json")
-    logger.info("   - POST /api/auth/register")
-    logger.info("   - GET /api/auth/me")
+    logger.info("   - POST /auth/login-json")
+    logger.info("   - POST /auth/register")
+    logger.info("   - GET /auth/me")
+    logger.info("   - GET /incidents/")  # FIXED: Updated endpoint paths
+    logger.info("   - GET /floodzones/")  # FIXED: Updated endpoint paths
+    logger.info("   - GET /rescue-units/")  # FIXED: Updated endpoint paths
 
 if __name__ == "__main__":
     # Run the application

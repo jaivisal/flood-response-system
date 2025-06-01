@@ -146,7 +146,7 @@ export default function FloodZonesPage() {
         <p className="text-gray-600 mb-4">Failed to load flood zone data. Please try again.</p>
         <button
           onClick={handleRefresh}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
         >
           Retry
         </button>
@@ -174,7 +174,7 @@ export default function FloodZonesPage() {
         <div className="mt-4 sm:mt-0 flex items-center space-x-3">
           <button
             onClick={handleRefresh}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -182,14 +182,14 @@ export default function FloodZonesPage() {
           
           <button
             onClick={handleExport}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <Download className="w-4 h-4 mr-2" />
             Export
           </button>
           
           {canManage && (
-            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
               <Plus className="w-4 h-4 mr-2" />
               Add Zone
             </button>
@@ -208,7 +208,7 @@ export default function FloodZonesPage() {
           title="Total Zones"
           value={stats.totalZones}
           icon={MapPin}
-          color="blue"
+          color="red"
           subtitle={`${filteredZones.length} shown`}
         />
         
@@ -263,7 +263,7 @@ export default function FloodZonesPage() {
                 placeholder="Search zones..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500"
               />
             </div>
           </div>
@@ -278,7 +278,7 @@ export default function FloodZonesPage() {
             <select
               value={riskFilter}
               onChange={(e) => setRiskFilter(e.target.value as RiskLevel | '')}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-1 focus:ring-red-500"
             >
               <option value="">All Risk Levels</option>
               <option value="very_low">Very Low</option>
@@ -292,7 +292,7 @@ export default function FloodZonesPage() {
             <select
               value={zoneTypeFilter}
               onChange={(e) => setZoneTypeFilter(e.target.value as ZoneType | '')}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-1 focus:ring-red-500"
             >
               <option value="">All Zone Types</option>
               <option value="residential">Residential</option>
@@ -308,7 +308,7 @@ export default function FloodZonesPage() {
                 type="checkbox"
                 checked={showCriticalOnly}
                 onChange={(e) => setShowCriticalOnly(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                className="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">Critical only</span>
             </label>
@@ -369,7 +369,7 @@ export default function FloodZonesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
                       selectedZone?.id === zone.id
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-red-500 bg-red-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                     onClick={() => handleZoneClick(zone)}
@@ -410,7 +410,7 @@ export default function FloodZonesPage() {
                           </div>
                           
                           {zone.is_currently_flooded && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                               Flooded
                             </span>
                           )}
@@ -419,7 +419,7 @@ export default function FloodZonesPage() {
                       
                       {canManage && (
                         <div className="flex items-center space-x-1 ml-2">
-                          <button className="p-1 text-gray-400 hover:text-blue-600 rounded">
+                          <button className="p-1 text-gray-400 hover:text-red-600 rounded">
                             <Eye className="w-4 h-4" />
                           </button>
                           <button className="p-1 text-gray-400 hover:text-green-600 rounded">
@@ -489,7 +489,7 @@ export default function FloodZonesPage() {
                 
                 {canManage && (
                   <div className="pt-3 border-t border-gray-200">
-                    <button className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+                    <button className="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
                       Manage Zone
                     </button>
                   </div>

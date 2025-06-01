@@ -1,6 +1,6 @@
 """
 Fixed Authentication router with better error handling
-backend/app/routers/auth.py - PRODUCTION READY VERSION
+backend/app/routers/auth.py - FIXED VERSION FOR ROLE HANDLING
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -82,13 +82,27 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
 def require_role(allowed_roles: List[UserRole]):
     """Dependency to require specific user roles"""
     def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
-        if current_user.role not in allowed_roles:
+        user_role = current_user.role
+        # Handle both string and enum values
+        if hasattr(user_role, 'value'):
+            user_role = user_role.value
+        
+        allowed_role_values = [role.value if hasattr(role, 'value') else role for role in allowed_roles]
+        
+        if user_role not in allowed_role_values:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Operation requires one of these roles: {[role.value for role in allowed_roles]}"
+                detail=f"Operation requires one of these roles: {allowed_role_values}"
             )
         return current_user
     return role_checker
+
+
+def get_role_value(role) -> str:
+    """Helper function to get role value whether it's string or enum"""
+    if hasattr(role, 'value'):
+        return role.value
+    return str(role)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -108,7 +122,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         db_user = User(
             email=user_data.email.lower().strip(),
             full_name=user_data.full_name.strip(),
-            role=user_data.role,
+            role=get_role_value(user_data.role),  # FIXED: Handle role properly
             phone_number=user_data.phone_number,
             department=user_data.department,
             is_active=True,
@@ -193,7 +207,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                role=user.role.value,
+                role=get_role_value(user.role),  # FIXED: Handle role properly
                 phone_number=user.phone_number,
                 department=user.department,
                 is_active=user.is_active,
@@ -214,7 +228,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
 
 @router.post("/login-json", response_model=Token)
 async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user with JSON payload - FRONTEND COMPATIBLE"""
+    """Authenticate user with JSON payload - FRONTEND COMPATIBLE - FIXED VERSION"""
     
     try:
         logger.info(f"JSON Login attempt for: {user_credentials.email}")
@@ -255,7 +269,10 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
             expires_delta=access_token_expires
         )
         
-        logger.info(f"Successful JSON login: {user.email} (Role: {user.role})")
+        # FIXED: Get role value properly
+        role_value = get_role_value(user.role)
+        
+        logger.info(f"Successful JSON login: {user.email} (Role: {role_value})")
         
         return {
             "access_token": access_token,
@@ -265,7 +282,7 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                role=user.role.value,
+                role=role_value,  # FIXED: Use the helper function
                 phone_number=user.phone_number,
                 department=user.department,
                 is_active=user.is_active,
@@ -286,12 +303,12 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
 
 @router.get("/me", response_model=UserProfile)
 async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
-    """Get current user profile - FRONTEND COMPATIBLE"""
+    """Get current user profile - FRONTEND COMPATIBLE - FIXED VERSION"""
     return UserProfile(
         id=current_user.id,
         email=current_user.email,
         full_name=current_user.full_name,
-        role=current_user.role.value,
+        role=get_role_value(current_user.role),  # FIXED: Handle role properly
         phone_number=current_user.phone_number,
         department=current_user.department,
         is_active=current_user.is_active,
@@ -349,7 +366,7 @@ async def refresh_access_token(current_user: User = Depends(get_current_active_u
             id=current_user.id,
             email=current_user.email,
             full_name=current_user.full_name,
-            role=current_user.role.value,
+            role=get_role_value(current_user.role),  # FIXED: Handle role properly
             phone_number=current_user.phone_number,
             department=current_user.department,
             is_active=current_user.is_active,
