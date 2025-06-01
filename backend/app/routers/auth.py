@@ -1,6 +1,6 @@
 """
-Authentication router for user login, registration, and token management
-FIXED VERSION with better error handling
+Updated Authentication router with better frontend integration
+backend/app/routers/auth.py - COMPLETE FIXED VERSION
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from typing import Optional
+from typing import Optional, List
 import logging
 
 from app.database import get_db
@@ -76,7 +76,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
     return current_user
 
 
-def require_role(allowed_roles: list[UserRole]):
+def require_role(allowed_roles: List[UserRole]):
     """Dependency to require specific user roles"""
     def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
         if current_user.role not in allowed_roles:
@@ -204,10 +204,10 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
 
 @router.post("/login-json", response_model=Token)
 async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user with JSON payload - FIXED VERSION"""
+    """Authenticate user with JSON payload - FRONTEND COMPATIBLE VERSION"""
     
     try:
-        logger.info(f"Login attempt for: {user_credentials.email}")
+        logger.info(f"JSON Login attempt for: {user_credentials.email}")
         
         # Find user by email
         user = db.query(User).filter(User.email == user_credentials.email).first()
@@ -241,7 +241,7 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
             expires_delta=access_token_expires
         )
         
-        logger.info(f"Successful login: {user.email} (Role: {user.role})")
+        logger.info(f"Successful JSON login: {user.email} (Role: {user.role})")
         
         return {
             "access_token": access_token,
@@ -279,7 +279,7 @@ async def login_user_json(user_credentials: UserLogin, db: Session = Depends(get
 
 @router.get("/me", response_model=UserProfile)
 async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
-    """Get current user profile"""
+    """Get current user profile - FRONTEND COMPATIBLE"""
     return UserProfile(
         id=current_user.id,
         email=current_user.email,
@@ -388,7 +388,7 @@ async def verify_user_token(token: str, db: Session = Depends(get_db)):
         )
 
 
-@router.get("/users", response_model=list[UserResponse])
+@router.get("/users", response_model=List[UserResponse])
 async def list_users(
     skip: int = 0,
     limit: int = 100,

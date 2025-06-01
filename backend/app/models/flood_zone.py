@@ -1,12 +1,12 @@
 """
-Fixed Flood Zone model for risk assessment areas
-backend/app/models/flood_zone.py - FIXED VERSION
+Updated Flood Zone model for Emergency Flood Response System
+backend/app/models/flood_zone.py - FIXED VERSION FOR FRONTEND INTEGRATION
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, Float, Boolean, case
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, Float, Boolean, case, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from geoalchemy2 import Geography
 import enum
+import json
 
 from app.database import Base
 
@@ -32,36 +32,41 @@ class ZoneType(str, enum.Enum):
 
 
 class FloodZone(Base):
-    """Flood Zone model"""
+    """Flood Zone model with proper coordinate handling"""
     __tablename__ = "flood_zones"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    zone_code = Column(String, unique=True, nullable=False)
+    zone_code = Column(String, unique=True, nullable=False, index=True)
     
     # Risk assessment
     risk_level = Column(Enum(RiskLevel), nullable=False, default=RiskLevel.MEDIUM)
     zone_type = Column(Enum(ZoneType), nullable=False, default=ZoneType.MIXED)
     
-    # Geographic data (PostGIS - Polygon)
-    zone_boundary = Column(Geography('POLYGON', srid=4326), nullable=False)
+    # Geographic data - FIXED for frontend integration
+    zone_boundary = Column(Geography('POLYGON', srid=4326), nullable=True)
     center_point = Column(Geography('POINT', srid=4326), nullable=True)
+    
+    # Store coordinates separately for easier frontend access
+    center_latitude = Column(Float, nullable=True)
+    center_longitude = Column(Float, nullable=True)
+    
     area_sqkm = Column(Float, nullable=True)  # Area in square kilometers
     
     # Demographics and infrastructure
     population_estimate = Column(Integer, default=0)
     residential_units = Column(Integer, default=0)
     commercial_units = Column(Integer, default=0)
-    critical_infrastructure = Column(Text, nullable=True)  # JSON array
+    critical_infrastructure = Column(Text, nullable=True)  # JSON string
     
     # Historical data
     last_major_flood = Column(DateTime(timezone=True), nullable=True)
-    flood_frequency_years = Column(Integer, nullable=True)  # Average years between floods
-    max_recorded_water_level = Column(Float, nullable=True)  # Meters
+    flood_frequency_years = Column(Integer, nullable=True)
+    max_recorded_water_level = Column(Float, nullable=True)
     
     # Current conditions
-    current_water_level = Column(Float, nullable=True)  # Current water level in meters
+    current_water_level = Column(Float, nullable=True)
     is_currently_flooded = Column(Boolean, default=False)
     evacuation_recommended = Column(Boolean, default=False)
     evacuation_mandatory = Column(Boolean, default=False)
@@ -119,13 +124,13 @@ class FloodZone(Base):
 
     @hybrid_property
     def priority_score(self) -> int:
-        """Get priority score for resource allocation - FIXED VERSION"""
+        """Get priority score for resource allocation"""
         return self.get_priority_score()
 
     @priority_score.expression
     def priority_score(cls):
         """SQLAlchemy expression for priority score calculation"""
-        # Create a case expression for risk level scoring
+        # Risk level scoring
         risk_score = case(
             (cls.risk_level == RiskLevel.EXTREME, 60),
             (cls.risk_level == RiskLevel.VERY_HIGH, 50),
@@ -136,7 +141,7 @@ class FloodZone(Base):
             else_=0
         )
         
-        # Add population factor
+        # Population factor
         population_score = case(
             (cls.population_estimate > 10000, 20),
             (cls.population_estimate > 5000, 15),
@@ -144,7 +149,7 @@ class FloodZone(Base):
             else_=0
         )
         
-        # Add current conditions scoring
+        # Current conditions scoring
         flooding_score = case(
             (cls.is_currently_flooded == True, 30),
             else_=0
@@ -193,16 +198,79 @@ class FloodZone(Base):
         
         return min(score, 100)
 
+    def get_critical_infrastructure_list(self) -> list:
+        """Get critical infrastructure as a list"""
+        if not self.critical_infrastructure:
+            return []
+        try:
+            return json.loads(self.critical_infrastructure)
+        except (json.JSONDecodeError, TypeError):
+            # If it's not valid JSON, treat as comma-separated string
+            return [item.strip() for item in self.critical_infrastructure.split(',') if item.strip()]
+
+    def set_critical_infrastructure_list(self, infrastructure_list: list):
+        """Set critical infrastructure from a list"""
+        if infrastructure_list:
+            self.critical_infrastructure = json.dumps(infrastructure_list)
+        else:
+            self.critical_infrastructure = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for API responses"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "zone_code": self.zone_code,
+            "risk_level": self.risk_level.value,
+            "zone_type": self.zone_type.value,
+            "center_latitude": self.center_latitude,
+            "center_longitude": self.center_longitude,
+            "area_sqkm": self.area_sqkm,
+            "population_estimate": self.population_estimate,
+            "residential_units": self.residential_units,
+            "commercial_units": self.commercial_units,
+            "critical_infrastructure": self.get_critical_infrastructure_list(),
+            "last_major_flood": self.last_major_flood.isoformat() if self.last_major_flood else None,
+            "flood_frequency_years": self.flood_frequency_years,
+            "max_recorded_water_level": self.max_recorded_water_level,
+            "current_water_level": self.current_water_level,
+            "is_currently_flooded": self.is_currently_flooded,
+            "evacuation_recommended": self.evacuation_recommended,
+            "evacuation_mandatory": self.evacuation_mandatory,
+            "district": self.district,
+            "municipality": self.municipality,
+            "responsible_officer": self.responsible_officer,
+            "emergency_contact": self.emergency_contact,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "last_assessment": self.last_assessment.isoformat() if self.last_assessment else None,
+            "color": self.get_risk_color(),
+            "opacity": self.get_risk_opacity(),
+            "priority_score": self.get_priority_score(),
+            "is_critical": self.is_critical()
+        }
+
     def to_geojson_feature(self) -> dict:
-        """Convert to GeoJSON feature"""
-        # Note: This is a simplified representation
-        # In a real implementation, you'd extract the actual polygon coordinates
+        """Convert to GeoJSON feature for map display"""
+        # If we have center coordinates, create a simple point feature
+        # In production, you'd use actual polygon boundaries
+        geometry = None
+        if self.center_latitude and self.center_longitude:
+            geometry = {
+                "type": "Point",
+                "coordinates": [self.center_longitude, self.center_latitude]
+            }
+        elif self.zone_boundary:
+            # Convert PostGIS geometry to GeoJSON (simplified)
+            geometry = {
+                "type": "Polygon",
+                "coordinates": [[]]  # Would contain actual coordinates from PostGIS
+            }
+        
         return {
             "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[]]  # Would contain actual polygon coordinates
-            },
+            "geometry": geometry,
             "properties": {
                 "id": self.id,
                 "name": self.name,
