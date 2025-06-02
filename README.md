@@ -9,6 +9,8 @@
 > A comprehensive emergency management platform designed to coordinate flood response operations, manage rescue resources, and facilitate real-time decision making during crisis situations.
 
 <img width="1470" alt="Image" src="https://github.com/user-attachments/assets/b2e8f938-0379-4bc5-bac1-a2f8c228b39c" />
+<img width="1466" alt="Image" src="https://github.com/user-attachments/assets/ae7e3c45-dbf9-4b86-ad35-5ca8a18d5b93" />
+<img width="1470" alt="Image" src="https://github.com/user-attachments/assets/74738a1b-0e32-49b5-a76f-4a1a93420095" />
 
 ## 🎯 Project Overview
 
