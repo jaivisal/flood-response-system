@@ -8,7 +8,7 @@
 
 > A comprehensive emergency management platform designed to coordinate flood response operations, manage rescue resources, and facilitate real-time decision making during crisis situations.
 
-![System Overview](https://via.placeholder.com/800x400/1e40af/ffffff?text=Emergency+Response+Dashboard)
+<img width="1470" alt="Image" src="https://github.com/user-attachments/assets/b2e8f938-0379-4bc5-bac1-a2f8c228b39c" />
 
 ## 🎯 Project Overview
 
@@ -432,16 +432,12 @@ pip install pre-commit
 pre-commit install
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support & Contact
 
 - **Technical Issues**: Create an issue on GitHub
 - **Security Concerns**: Email jaivisal123@gmail.com
 - **Feature Requests**: Use GitHub Discussions
-- **Documentation**: [Wiki Pages](https://github.com/yourusername/emergency-flood-response/wiki)
 
 ---
 
