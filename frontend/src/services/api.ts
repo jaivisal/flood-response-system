@@ -1,7 +1,4 @@
-/*
-Updated API service with better token handling
-frontend/src/services/api.ts - COMPLETE FIXED VERSION
-*/
+
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';

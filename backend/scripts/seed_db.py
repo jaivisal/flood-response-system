@@ -1,7 +1,4 @@
-"""
-Database seeding script for Emergency Flood Response System
-Creates demo data for testing and development
-"""
+
 
 import sys
 import os

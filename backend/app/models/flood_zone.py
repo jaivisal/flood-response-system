@@ -1,7 +1,4 @@
-"""
-Updated Flood Zone model for Emergency Flood Response System
-backend/app/models/flood_zone.py - FIXED VERSION FOR FRONTEND INTEGRATION
-"""
+
 from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, Float, Boolean, case, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from geoalchemy2 import Geography

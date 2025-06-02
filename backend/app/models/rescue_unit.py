@@ -1,7 +1,4 @@
-"""
-Enhanced Rescue Unit model with better tracking and management
-backend/app/models/rescue_unit.py - UPDATED VERSION
-"""
+
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Enum, Float, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func

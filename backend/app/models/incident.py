@@ -1,7 +1,4 @@
-"""
-Enhanced Incident model with better GIS support and additional fields
-backend/app/models/incident.py - FIXED VERSION WITH CORRECT RELATIONSHIPS
-"""
+
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, Float, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func

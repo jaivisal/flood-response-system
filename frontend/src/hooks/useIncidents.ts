@@ -1,4 +1,4 @@
-// frontend/src/hooks/useIncidents.ts - COMPLETE FIXED VERSION
+
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
 import { Incident, CreateIncidentData } from '../types';

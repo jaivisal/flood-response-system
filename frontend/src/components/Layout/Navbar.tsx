@@ -1,4 +1,4 @@
-// frontend/src/components/Layout/Navbar.tsx - IMPROVED VERSION
+
 import React, { useState } from 'react';
 import { Menu, Bell, User, LogOut, Settings, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

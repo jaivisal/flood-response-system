@@ -1,4 +1,4 @@
-// frontend/src/components/Layout/Layout.tsx - IMPROVED VERSION
+
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

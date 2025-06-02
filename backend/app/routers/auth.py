@@ -1,7 +1,4 @@
-"""
-Fixed Authentication router with better error handling
-backend/app/routers/auth.py - FIXED VERSION FOR ROLE HANDLING
-"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session

@@ -1,7 +1,4 @@
-"""
-Enhanced User model with better password handling and validation
-backend/app/models/user.py - FIXED VERSION WITH CORRECT RELATIONSHIPS
-"""
+
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func

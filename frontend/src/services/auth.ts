@@ -1,4 +1,4 @@
-// frontend/src/services/auth.ts - COMPLETELY FIXED VERSION
+
 import { api } from './api';
 import { LoginCredentials, AuthResponse, User } from '../types';
 
