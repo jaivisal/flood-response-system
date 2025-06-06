@@ -1,8 +1,30 @@
-
 import { api } from './api';
-import { LoginCredentials, AuthResponse, User } from '../types';
+import { LoginCredentials, AuthResponse, User, UserRole } from '../types';
 
 const TOKEN_KEY = 'flood_response_token'; // CONSISTENT with api.ts
+
+// Registration interface
+export interface RegisterCredentials {
+  email: string;
+  password: string;
+  full_name: string;
+  phone_number?: string;
+  department?: string;
+  role: UserRole;
+}
+
+export interface RegisterResponse {
+  message: string;
+  user: {
+    id: number;
+    email: string;
+    full_name: string;
+    role: UserRole;
+    is_active: boolean;
+    is_approved: boolean;
+    created_at: string;
+  };
+}
 
 class AuthService {
   // Token management - IMPROVED
@@ -40,6 +62,64 @@ class AuthService {
     }
   }
 
+  // Registration method - NEW
+  async register(credentials: RegisterCredentials): Promise<RegisterResponse> {
+    try {
+      console.log('📝 Attempting registration for:', credentials.email);
+      
+      // Validate credentials
+      if (!credentials.email || !credentials.password || !credentials.full_name || !credentials.role) {
+        throw new Error('Email, password, full name, and role are required');
+      }
+
+      if (credentials.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
+      // Make registration request
+      const response = await api.post('/auth/register', {
+        email: credentials.email.trim(),
+        password: credentials.password,
+        full_name: credentials.full_name.trim(),
+        phone_number: credentials.phone_number?.trim() || undefined,
+        department: credentials.department?.trim() || undefined,
+        role: credentials.role,
+      });
+
+      console.log('✅ Registration successful:', {
+        user: response.data.user?.email,
+        role: response.data.user?.role,
+        approved: response.data.user?.is_approved
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Registration failed:', error);
+      
+      // Enhanced error handling
+      if (error.response?.status === 400) {
+        throw new Error('Email already exists or invalid data provided');
+      } else if (error.response?.status === 422) {
+        const validationErrors = error.response.data?.detail;
+        if (validationErrors && Array.isArray(validationErrors)) {
+          const errorMessages = validationErrors.map((err: any) => 
+            `${err.loc?.join('.')}: ${err.msg}`
+          ).join(', ');
+          throw new Error(`Validation Error: ${errorMessages}`);
+        }
+        throw new Error('Please check your input data');
+      } else if (error.response?.status === 429) {
+        throw new Error('Too many registration attempts. Please wait and try again.');
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Registration failed. Please try again.');
+      }
+    }
+  }
+
   // Authentication methods - IMPROVED
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
@@ -69,6 +149,8 @@ class AuthService {
       // Enhanced error handling
       if (error.response?.status === 401) {
         throw new Error('Invalid email or password');
+      } else if (error.response?.status === 403) {
+        throw new Error('Account not approved yet. Please wait for administrator approval.');
       } else if (error.response?.status === 422) {
         throw new Error('Please check your email and password format');
       } else if (error.response?.status === 429) {
@@ -158,8 +240,8 @@ class AuthService {
         throw new Error('Current password and new password are required');
       }
 
-      if (newPassword.length < 6) {
-        throw new Error('New password must be at least 6 characters long');
+      if (newPassword.length < 8) {
+        throw new Error('New password must be at least 8 characters long');
       }
 
       await api.post('/auth/change-password', {
@@ -177,6 +259,62 @@ class AuthService {
         throw new Error(error.response.data.detail);
       } else {
         throw new Error('Failed to change password. Please try again.');
+      }
+    }
+  }
+
+  // Account management methods - NEW
+  async requestPasswordReset(email: string): Promise<void> {
+    try {
+      console.log('🔄 Requesting password reset for:', email);
+      
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      await api.post('/auth/request-password-reset', { email: email.trim() });
+      
+      console.log('✅ Password reset email sent');
+    } catch (error: any) {
+      console.error('❌ Password reset request failed:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('Email address not found');
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      } else {
+        throw new Error('Failed to send password reset email');
+      }
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      console.log('🔒 Resetting password with token...');
+      
+      if (!token || !newPassword) {
+        throw new Error('Reset token and new password are required');
+      }
+
+      if (newPassword.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
+      await api.post('/auth/reset-password', {
+        token,
+        new_password: newPassword,
+      });
+
+      console.log('✅ Password reset successful');
+    } catch (error: any) {
+      console.error('❌ Password reset failed:', error);
+      
+      if (error.response?.status === 400) {
+        throw new Error('Invalid or expired reset token');
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      } else {
+        throw new Error('Failed to reset password');
       }
     }
   }
@@ -305,7 +443,7 @@ class AuthService {
     return roleNames[role] || role.replace('_', ' ');
   }
 
-  // Check if user can perform specific actions
+  // Role-based permission checks
   canCreateIncident(user: User | null): boolean {
     // All authenticated users can create incidents
     return !!user;
@@ -325,6 +463,87 @@ class AuthService {
 
   canDeleteIncident(user: User | null): boolean {
     return this.hasRole(user, ['admin']);
+  }
+
+  canApproveUsers(user: User | null): boolean {
+    return this.hasRole(user, ['admin']);
+  }
+
+  canManageUsers(user: User | null): boolean {
+    return this.hasRole(user, ['admin']);
+  }
+
+  // Account status checks
+  isAccountApproved(user: User | null): boolean {
+    return !!(user && (user as any).is_approved !== false);
+  }
+
+  isAccountActive(user: User | null): boolean {
+    return !!(user && user.is_active);
+  }
+
+  // Validation helpers
+  isValidEmail(email: string): boolean {
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    return emailRegex.test(email);
+  }
+
+  isValidPassword(password: string): boolean {
+    return password.length >= 8;
+  }
+
+  isValidPhoneNumber(phone: string): boolean {
+    const phoneRegex = /^[+]?[\d\s-()]{10,}$/;
+    return phoneRegex.test(phone);
+  }
+
+  // Password strength calculator
+  calculatePasswordStrength(password: string): {
+    score: number;
+    label: string;
+    suggestions: string[];
+  } {
+    if (!password) {
+      return { score: 0, label: 'No password', suggestions: ['Enter a password'] };
+    }
+
+    let score = 0;
+    const suggestions: string[] = [];
+
+    if (password.length >= 8) {
+      score++;
+    } else {
+      suggestions.push('Use at least 8 characters');
+    }
+
+    if (/[a-z]/.test(password)) {
+      score++;
+    } else {
+      suggestions.push('Add lowercase letters');
+    }
+
+    if (/[A-Z]/.test(password)) {
+      score++;
+    } else {
+      suggestions.push('Add uppercase letters');
+    }
+
+    if (/[0-9]/.test(password)) {
+      score++;
+    } else {
+      suggestions.push('Add numbers');
+    }
+
+    if (/[^A-Za-z0-9]/.test(password)) {
+      score++;
+    } else {
+      suggestions.push('Add special characters');
+    }
+
+    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    const label = labels[score - 1] || 'Very Weak';
+
+    return { score, label, suggestions };
   }
 }
 

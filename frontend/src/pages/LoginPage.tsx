@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Shield, Waves, AlertTriangle, Activity } from 'lucide-react';
+import { Eye, EyeOff, Shield, Waves, AlertTriangle, Activity, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '../hooks/useAuth';
@@ -21,12 +21,26 @@ export default function LoginPage() {
   const location = useLocation();
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const registrationMessage = (location.state as any)?.message;
+  const emailFromRegistration = (location.state as any)?.email;
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<LoginFormData>();
+  } = useForm<LoginFormData>({
+    defaultValues: {
+      email: emailFromRegistration || '',
+      password: '',
+    },
+  });
+
+  React.useEffect(() => {
+    if (emailFromRegistration) {
+      setValue('email', emailFromRegistration);
+    }
+  }, [emailFromRegistration, setValue]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -37,6 +51,23 @@ export default function LoginPage() {
       // Error handling is done in useAuth hook
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Demo account quick-fill functions
+  const fillDemoAccount = (role: string) => {
+    const demoAccounts = {
+      responder: { email: 'responder@demo.com', password: 'demo123' },
+      command: { email: 'command@demo.com', password: 'demo123' },
+      officer: { email: 'officer@demo.com', password: 'demo123' },
+      admin: { email: 'admin@demo.com', password: 'demo123' },
+    };
+
+    const account = demoAccounts[role as keyof typeof demoAccounts];
+    if (account) {
+      setValue('email', account.email);
+      setValue('password', account.password);
+      toast.success(`Demo ${role} account loaded`);
     }
   };
 
@@ -69,6 +100,24 @@ export default function LoginPage() {
             Flood Management & Coordination System
           </p>
         </motion.div>
+
+        {/* Registration Success Message */}
+        {registrationMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="bg-green-50 border border-green-200 rounded-lg p-4"
+          >
+            <div className="flex items-start">
+              <Shield className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="text-green-800 font-medium">Registration Successful!</p>
+                <p className="text-green-700 mt-1">{registrationMessage}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Login Form */}
         <motion.div
@@ -165,30 +214,80 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* Registration link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link
+                to="/register"
+                className="font-medium text-blue-600 hover:text-blue-500 transition-colors inline-flex items-center"
+              >
+                <UserPlus className="w-4 h-4 mr-1" />
+                Register as Emergency Personnel
+              </Link>
+            </p>
+          </div>
+
           {/* Demo credentials */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Demo Accounts</h3>
-            <div className="grid gap-2 text-xs">
-              <div className="flex items-center p-2 bg-red-50 rounded-lg">
-                <AlertTriangle className="w-4 h-4 text-red-600 mr-2" />
-                <div>
-                  <div className="font-medium text-red-800">Field Responder</div>
-                  <div className="text-red-600">responder@demo.com / demo123</div>
-                </div>
-              </div>
-              <div className="flex items-center p-2 bg-blue-50 rounded-lg">
-                <Activity className="w-4 h-4 text-blue-600 mr-2" />
-                <div>
-                  <div className="font-medium text-blue-800">Command Center</div>
-                  <div className="text-blue-600">command@demo.com / demo123</div>
-                </div>
-              </div>
-              <div className="flex items-center p-2 bg-green-50 rounded-lg">
-                <Shield className="w-4 h-4 text-green-600 mr-2" />
-                <div>
-                  <div className="font-medium text-green-800">District Officer</div>
-                  <div className="text-green-600">officer@demo.com / demo123</div>
-                </div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3 text-center">Demo Accounts</h3>
+            
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('responder')}
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+              >
+                <span className="text-red-500 mr-1">🚨</span>
+                Field Responder
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('command')}
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+              >
+                <span className="text-blue-500 mr-1">🎯</span>
+                Command Center
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('officer')}
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+              >
+                <span className="text-green-500 mr-1">🏛️</span>
+                District Officer
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('admin')}
+                className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+              >
+                <span className="text-purple-500 mr-1">⚙️</span>
+                Admin
+              </button>
+            </div>
+            
+            <p className="text-center text-xs text-gray-500">
+              All demo accounts use password: <code className="bg-gray-100 px-1 rounded">demo123</code>
+            </p>
+          </div>
+
+          {/* Security Notice */}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start">
+              <Shield className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="text-blue-800 font-medium">Secure Authentication</p>
+                <p className="text-blue-700 mt-1">
+                  Your credentials are protected with industry-standard encryption and secure token-based authentication.
+                </p>
               </div>
             </div>
           </div>

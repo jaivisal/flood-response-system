@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import IncidentsPage from './pages/IncidentsPage';
 import RescueUnitsPage from './pages/RescueUnitsPage';
@@ -18,9 +19,6 @@ import LoadingSpinner from './components/Common/LoadingSpinner';
 
 // Styles
 import './index.css';
-// In your App.tsx
-
-
 
 // Create a client
 const queryClient = new QueryClient({
@@ -51,6 +49,13 @@ function AppRoutes() {
         path="/login" 
         element={
           !isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" replace />
+        } 
+      />
+      
+      <Route 
+        path="/register" 
+        element={
+          !isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" replace />
         } 
       />
       
