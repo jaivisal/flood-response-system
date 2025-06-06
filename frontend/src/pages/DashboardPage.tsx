@@ -9,12 +9,14 @@ import {
   MapPin,
   Zap,
   Shield,
+  UserPlus,
 } from 'lucide-react';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIncidents, useIncidentStats } from '../hooks/useIncidents';
 import { useRescueUnits } from '../hooks/useRescueUnits';
 import { useFloodZones } from '../hooks/useFloodZones';
+import { useAutoAssignUnits } from '../hooks/useAssignments';
 import MapContainer from '../components/Map/MapContainer';
 import StatsCard from '../components/Dashboard/StatsCard';
 import RecentIncidents from '../components/Dashboard/RecentIncidents';
@@ -23,11 +25,16 @@ import AlertsPanel from '../components/Dashboard/AlertsPanel';
 import RiskDashboard from '../components/Dashboard/RiskDashboard';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import SimpleIncidentForm from '../components/Forms/IncidentForm';
+import UnitAssignmentModal from '../components/Incidents/UnitAssignmentModal';
+import { Incident, RescueUnit } from '../types';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [incidentToAssign, setIncidentToAssign] = useState<Incident | null>(null);
+  const [showAutoAssignConfirm, setShowAutoAssignConfirm] = useState(false);
 
   // Fetch data with auto-refresh
   const {
@@ -61,14 +68,17 @@ export default function DashboardPage() {
     error: statsError,
   } = useIncidentStats();
 
-  // FIXED: Report incident handlers
+  // Auto-assign mutation
+  const autoAssignMutation = useAutoAssignUnits();
+
+  // Report incident handlers
   const handleReportIncident = () => {
-    console.log('Dashboard: Report Incident button clicked'); // Debug log
+    console.log('Dashboard: Report Incident button clicked');
     setIsReportFormOpen(true);
   };
 
   const handleCloseReportForm = () => {
-    console.log('Dashboard: Closing report form'); // Debug log
+    console.log('Dashboard: Closing report form');
     setIsReportFormOpen(false);
   };
 
@@ -79,6 +89,45 @@ export default function DashboardPage() {
     refetchIncidents();
     refetchUnits();
     refetchZones();
+  };
+
+  // Assignment handlers
+  const handleAssignUnit = (incident: Incident) => {
+    setIncidentToAssign(incident);
+    setIsAssignmentModalOpen(true);
+  };
+
+  const handleAssignmentSuccess = (assignedUnit: RescueUnit) => {
+    console.log('Unit assigned successfully:', assignedUnit);
+    setIsAssignmentModalOpen(false);
+    setIncidentToAssign(null);
+    refetchIncidents();
+    refetchUnits();
+  };
+
+  // Auto-assign handlers
+  const handleAutoAssign = async () => {
+    try {
+      const criticalIncidentIds = criticalIncidents
+        .filter(incident => 
+          incident.severity === 'critical' && 
+          incident.status === 'reported' && 
+          !incident.assigned_unit_id
+        )
+        .map(incident => incident.id);
+
+      if (criticalIncidentIds.length === 0) {
+        return;
+      }
+
+      await autoAssignMutation.mutateAsync(criticalIncidentIds);
+      setShowAutoAssignConfirm(false);
+      refetchIncidents();
+      refetchUnits();
+    } catch (error) {
+      console.error('Auto-assignment failed:', error);
+      setShowAutoAssignConfirm(false);
+    }
   };
 
   // Debug logging
@@ -92,10 +141,11 @@ export default function DashboardPage() {
   }, [incidentStats, statsError]);
 
   // Calculate dashboard metrics
-  const criticalIncidents = incidents.filter(i => i.severity === 'critical').length;
-  const activeIncidents = incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length;
-  const availableUnits = rescueUnits.filter(u => u.status === 'available').length;
-  const responseUnits = rescueUnits.filter(u => ['en_route', 'on_scene'].includes(u.status)).length;
+  const criticalIncidents = incidents.filter(i => i.severity === 'critical');
+  const activeIncidents = incidents.filter(i => !['resolved', 'closed'].includes(i.status));
+  const availableUnits = rescueUnits.filter(u => u.status === 'available');
+  const responseUnits = rescueUnits.filter(u => ['en_route', 'on_scene'].includes(u.status));
+  const unassignedCritical = criticalIncidents.filter(i => i.status === 'reported' && !i.assigned_unit_id);
 
   // Recent incidents (last 24 hours)
   const recentIncidents = incidents
@@ -108,13 +158,15 @@ export default function DashboardPage() {
 
   // Auto-refresh controls
   useEffect(() => {
-    const interval = setInterval(() => {
-      refetchIncidents();
-      refetchUnits();
-      refetchZones();
-    }, refreshInterval);
+    if (refreshInterval > 0) {
+      const interval = setInterval(() => {
+        refetchIncidents();
+        refetchUnits();
+        refetchZones();
+      }, refreshInterval);
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }
   }, [refreshInterval, refetchIncidents, refetchUnits, refetchZones]);
 
   if (incidentsLoading || unitsLoading || zonesLoading) {
@@ -169,35 +221,35 @@ export default function DashboardPage() {
       >
         <StatsCard
           title="Critical Incidents"
-          value={criticalIncidents}
+          value={criticalIncidents.length}
           icon={AlertTriangle}
           color="red"
-          trend={criticalIncidents > 0 ? 'up' : 'stable'}
-          subtitle={`${activeIncidents} total active`}
+          trend={criticalIncidents.length > 0 ? 'up' : 'stable'}
+          subtitle={`${activeIncidents.length} total active`}
         />
         
         <StatsCard
           title="Available Units"
-          value={availableUnits}
+          value={availableUnits.length}
           icon={Shield}
           color="green"
           trend="stable"
-          subtitle={`${responseUnits} responding`}
+          subtitle={`${responseUnits.length} responding`}
         />
         
         <StatsCard
           title="Response Time"
-          value={incidentStats?.average_resolution_time || "12.5"}
+          value={typeof incidentStats?.average_resolution_time === 'number' ? incidentStats.average_resolution_time : 12.5}
           unit="h"
           icon={Clock}
-          color="red"
+          color="blue"
           trend="down"
           subtitle="Average resolution"
         />
         
         <StatsCard
           title="People Affected"
-          value={incidents.reduce((sum, i) => sum + i.affected_people_count, 0)}
+          value={incidents.reduce((sum, i) => sum + (i.affected_people_count || 0), 0)}
           icon={Users}
           color="orange"
           trend="up"
@@ -233,7 +285,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-red-600" />
+                <MapPin className="w-5 h-5 mr-2 text-blue-600" />
                 Live Situation Map
               </h2>
               <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -325,7 +377,7 @@ export default function DashboardPage() {
                 <span className="text-sm text-gray-600">Unit Utilization</span>
                 <div className="flex items-center">
                   <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                    <div className="bg-red-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '65%' }}></div>
                   </div>
                   <span className="text-sm font-medium">65%</span>
                 </div>
@@ -351,7 +403,7 @@ export default function DashboardPage() {
                   <div className="text-sm text-gray-500">Resolved Today</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-red-600">{availableUnits}</div>
+                  <div className="text-2xl font-bold text-blue-600">{availableUnits.length}</div>
                   <div className="text-sm text-gray-500">Active Teams</div>
                 </div>
               </div>
@@ -360,8 +412,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Critical Incidents Alert */}
-      {criticalIncidents > 0 && (
+      {/* Critical Incidents Alert with Auto-Assign */}
+      {criticalIncidents.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -373,18 +425,33 @@ export default function DashboardPage() {
               <AlertTriangle className="w-8 h-8 text-red-600 mr-3 animate-pulse" />
               <div>
                 <h3 className="text-lg font-semibold text-red-900">
-                  {criticalIncidents} Critical Incident{criticalIncidents > 1 ? 's' : ''} Require Immediate Attention
+                  {criticalIncidents.length} Critical Incident{criticalIncidents.length > 1 ? 's' : ''} Require Immediate Attention
                 </h3>
                 <p className="text-sm text-red-700">
-                  These incidents need urgent response and resource allocation.
+                  {unassignedCritical.length > 0 ? 
+                    `${unassignedCritical.length} unassigned critical incidents need urgent response.` :
+                    'All critical incidents have been assigned to rescue units.'
+                  }
                 </p>
               </div>
             </div>
             
             <div className="flex space-x-2">
-              <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
-                Auto-Assign Units
-              </button>
+              {unassignedCritical.length > 0 && (
+                <button 
+                  onClick={() => setShowAutoAssignConfirm(true)}
+                  disabled={autoAssignMutation.isLoading}
+                  className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  {autoAssignMutation.isLoading ? 'Assigning...' : 'Auto-Assign Units'}
+                  {unassignedCritical.length > 0 && (
+                    <span className="ml-2 bg-orange-500 text-white text-xs rounded-full px-2 py-0.5">
+                      {unassignedCritical.length}
+                    </span>
+                  )}
+                </button>
+              )}
               <button className="px-4 py-2 bg-white text-red-600 border border-red-600 text-sm font-medium rounded-md hover:bg-red-50 transition-colors">
                 View All Critical
               </button>
@@ -413,7 +480,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* FIXED: Floating Action Button for Report Incident */}
+      {/* Floating Action Button for Report Incident */}
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -426,12 +493,105 @@ export default function DashboardPage() {
         <AlertTriangle className="w-6 h-6" />
       </motion.button>
 
-      {/* FIXED: Simple Report Incident Form Modal */}
+      {/* Report Incident Form Modal */}
       <SimpleIncidentForm
         isOpen={isReportFormOpen}
         onClose={handleCloseReportForm}
         onSuccess={handleReportSuccess}
       />
+
+      {/* Unit Assignment Modal */}
+      {incidentToAssign && (
+        <UnitAssignmentModal
+          isOpen={isAssignmentModalOpen}
+          onClose={() => {
+            setIsAssignmentModalOpen(false);
+            setIncidentToAssign(null);
+          }}
+          incident={incidentToAssign}
+          onSuccess={handleAssignmentSuccess}
+        />
+      )}
+
+      {/* Auto-Assign Confirmation Modal */}
+      {showAutoAssignConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={(e) => e.target === e.currentTarget && setShowAutoAssignConfirm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-full mr-3">
+                  <Zap className="w-5 h-5 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Auto-Assign Units</h3>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                This will automatically assign the most suitable available units to {unassignedCritical.length} critical incident{unassignedCritical.length > 1 ? 's' : ''}.
+              </p>
+
+              <div className="space-y-2">
+                {unassignedCritical.slice(0, 3).map((incident) => (
+                  <div key={incident.id} className="flex items-center p-2 bg-red-50 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-red-600 mr-2 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-red-900 truncate">
+                        {incident.title}
+                      </p>
+                      <p className="text-xs text-red-700">
+                        {incident.affected_people_count} people affected
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {unassignedCritical.length > 3 && (
+                  <div className="text-sm text-gray-500 text-center">
+                    +{unassignedCritical.length - 3} more incident{unassignedCritical.length - 3 > 1 ? 's' : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowAutoAssignConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAutoAssign}
+                disabled={autoAssignMutation.isLoading}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {autoAssignMutation.isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Assigning...
+                  </div>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Confirm Auto-Assign
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

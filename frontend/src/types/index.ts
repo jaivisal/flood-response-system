@@ -83,21 +83,16 @@ export interface CreateIncidentData {
   additional_images?: string[];
 }
 
-// frontend/src/types/index.ts - UPDATED IncidentStats interface
-
-// ... existing types ...
-
+// Updated IncidentStats interface to match backend
 export interface IncidentStats {
-    total_incidents: number;
-    by_severity: Record<string, number>;
-    by_status: Record<string, number>;
-    by_type: Record<string, number>;
-    critical_incidents: number;
-    resolved_incidents: number;
-    average_resolution_time: number | null; // Changed from optional to nullable
-  }
-  
-  // ... rest of the types remain the same ...
+  total_incidents: number;
+  by_severity: Record<string, number>;
+  by_status: Record<string, number>;
+  by_type: Record<string, number>;
+  critical_incidents: number;
+  resolved_incidents: number;
+  average_resolution_time: number | null; // Changed from optional to nullable
+}
 
 // Rescue Unit Types
 export type UnitType = 
@@ -233,13 +228,6 @@ export interface FloodZoneStats {
   high_risk_zones: number;
   population_at_risk: number;
 }
-// frontend/src/types/index.ts - UPDATED IncidentStats interface
-
-// ... existing types ...
-
-  
-  // ... rest of the types remain the same ...
-
 
 // GeoJSON Types
 export interface GeoJSONFeature {

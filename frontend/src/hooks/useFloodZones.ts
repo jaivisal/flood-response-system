@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
-import { FloodZone, CreateFloodZoneData, FloodZoneStats } from '../types';
+import { FloodZone } from '../types';
 import toast from 'react-hot-toast';
 
-// Define missing types
+// Define interfaces locally since they're not in the main types file
 interface CreateFloodZoneData {
   name: string;
   description?: string;

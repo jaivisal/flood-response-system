@@ -1,7 +1,43 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
-import { RescueUnit, CreateRescueUnitData, RescueUnitStats } from '../types';
+import { RescueUnit } from '../types';
 import toast from 'react-hot-toast';
+
+// Define interfaces locally since they may not be in the main types file
+interface CreateRescueUnitData {
+  unit_name: string;
+  call_sign?: string;
+  unit_type: string;
+  capacity: number;
+  team_size: number;
+  team_leader?: string;
+  contact_number?: string;
+  radio_frequency?: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    landmark?: string;
+  };
+  base_location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    landmark?: string;
+  };
+  equipment?: string[];
+}
+
+interface RescueUnitStats {
+  total_units: number;
+  available_units: number;
+  busy_units: number;
+  offline_units: number;
+  by_type: Record<string, number>;
+  by_status: Record<string, number>;
+  average_response_time?: number;
+  units_needing_maintenance: number;
+}
 
 // Fetch rescue units
 export function useRescueUnits(options?: { refetchInterval?: number }) {

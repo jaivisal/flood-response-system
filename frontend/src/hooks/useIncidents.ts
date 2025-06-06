@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { apiService } from '../services/api';
 import { Incident, CreateIncidentData } from '../types';
@@ -19,7 +18,7 @@ export interface IncidentStats {
 export function useIncidents(options?: { refetchInterval?: number }) {
   return useQuery<Incident[]>(
     'incidents',
-    () => apiService.get('/incidents/'),
+    () => apiService.get<Incident[]>('/incidents/'),
     {
       refetchInterval: options?.refetchInterval,
       staleTime: 30000, // 30 seconds
@@ -35,7 +34,7 @@ export function useIncidents(options?: { refetchInterval?: number }) {
 export function useIncident(id: number) {
   return useQuery<Incident>(
     ['incident', id],
-    () => apiService.get(`/incidents/${id}`),
+    () => apiService.get<Incident>(`/incidents/${id}`),
     {
       enabled: !!id,
       onError: (error: any) => {
@@ -52,7 +51,7 @@ export function useIncidentStats() {
     'incident-stats',
     async () => {
       try {
-        const data = await apiService.get('/incidents/stats/overview');
+        const data = await apiService.get<IncidentStats>('/incidents/stats/overview');
         console.log('📊 Raw stats data:', data);
         
         // Ensure the data matches our expected structure
@@ -115,7 +114,7 @@ export function useCreateIncident() {
       }
       
       try {
-        const result = await apiService.post('/incidents/', data);
+        const result = await apiService.post<Incident>('/incidents/', data);
         console.log('✅ useCreateIncident: Success:', result);
         return result;
       } catch (error: any) {
@@ -155,7 +154,7 @@ export function useUpdateIncident() {
   const queryClient = useQueryClient();
 
   return useMutation<Incident, Error, { id: number; data: Partial<Incident> }>(
-    ({ id, data }) => apiService.put(`/incidents/${id}`, data),
+    ({ id, data }) => apiService.put<Incident>(`/incidents/${id}`, data),
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries('incidents');
@@ -176,7 +175,7 @@ export function useDeleteIncident() {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, number>(
-    (id) => apiService.delete(`/incidents/${id}`),
+    (id) => apiService.delete<void>(`/incidents/${id}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('incidents');
@@ -195,7 +194,7 @@ export function useDeleteIncident() {
 export function useNearbyIncidents(lat: number, lng: number, radius: number = 10) {
   return useQuery<Incident[]>(
     ['nearby-incidents', lat, lng, radius],
-    () => apiService.post('/incidents/nearby', {
+    () => apiService.post<Incident[]>('/incidents/nearby', {
       latitude: lat,
       longitude: lng,
       radius_km: radius,
