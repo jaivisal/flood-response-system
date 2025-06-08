@@ -69,11 +69,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!data.terms_accepted) {
-      toast.error('Please accept the terms and conditions');
-      return;
-    }
-
     try {
       setIsLoading(true);
       
@@ -437,32 +432,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Terms and Conditions */}
-            <div>
-              <label className="flex items-start">
-                <input
-                  {...register('terms_accepted', {
-                    required: 'You must accept the terms and conditions',
-                  })}
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
-                />
-                <span className="ml-2 text-sm text-gray-700">
-                  I agree to the{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                    Terms and Conditions
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                    Privacy Policy
-                  </a>
-                </span>
-              </label>
-              {errors.terms_accepted && (
-                <p className="mt-1 text-sm text-red-600">{errors.terms_accepted.message}</p>
-              )}
-            </div>
-
             {/* Submit button */}
             <div>
               <motion.button
@@ -504,19 +473,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Registration Notice */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start">
-              <AlertTriangle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="text-blue-800 font-medium">Account Approval Required</p>
-                <p className="text-blue-700 mt-1">
-                  Your account will be reviewed and approved by an administrator before you can access the system. 
-                  This typically takes 24-48 hours. You will receive an email notification once approved.
-                </p>
-              </div>
-            </div>
-          </div>
         </motion.div>
 
         {/* Footer */}

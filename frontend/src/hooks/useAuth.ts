@@ -37,12 +37,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const token = authService.getToken();
         if (token) {
+          console.log('🔍 Token found, fetching user profile...');
           const userProfile = await authService.getCurrentUser();
           setUser(userProfile);
+          console.log('✅ User authenticated:', userProfile.email);
+        } else {
+          console.log('❌ No token found');
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
+        console.error('❌ Auth initialization failed:', error);
         authService.removeToken();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -53,16 +58,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
+      console.log('🔑 Starting login process...');
       setIsLoading(true);
+      
       const response: AuthResponse = await authService.login(credentials);
       
+      // Store token first
       authService.setToken(response.access_token);
+      console.log('🔐 Token stored successfully');
+      
+      // Then update user state
       setUser(response.user);
+      console.log('✅ User state updated:', response.user.email);
       
       toast.success(`Welcome back, ${response.user.full_name}!`);
+      
+      // Add a small delay to ensure state is fully updated
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
     } catch (error: any) {
-      console.error('Login failed:', error);
-      const errorMessage = error.response?.data?.detail || 'Login failed. Please try again.';
+      console.error('❌ Login failed:', error);
+      setUser(null);
+      authService.removeToken();
+      
+      const errorMessage = error.response?.data?.detail || error.message || 'Login failed. Please try again.';
       toast.error(errorMessage);
       throw error;
     } finally {
@@ -71,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
+    console.log('🔓 Logging out user...');
     authService.removeToken();
     setUser(null);
     toast.success('Logged out successfully');
@@ -78,10 +98,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = async () => {
     try {
+      console.log('🔄 Refreshing user data...');
       const userProfile = await authService.getCurrentUser();
       setUser(userProfile);
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      console.error('❌ Failed to refresh user data:', error);
       logout();
     }
   };

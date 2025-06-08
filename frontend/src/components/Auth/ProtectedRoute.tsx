@@ -12,13 +12,21 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
+  console.log('🛡️ ProtectedRoute check:', {
+    isAuthenticated,
+    isLoading,
+    userEmail: user?.email,
+    currentPath: location.pathname,
+    requiredRoles
+  });
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Verifying authentication...</p>
         </div>
       </div>
     );
@@ -26,11 +34,13 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log('❌ User not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check role-based access if required roles are specified
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+    console.log('❌ User role not authorized:', user.role, 'required:', requiredRoles);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
@@ -57,5 +67,6 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
     );
   }
 
+  console.log('✅ User authenticated and authorized, rendering children');
   return <>{children}</>;
 }
